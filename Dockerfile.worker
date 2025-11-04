@@ -1,49 +1,49 @@
+# =========================
 # Stage 1: Build Stage
-FROM golang:1.24-alpine AS builder
+# =========================
+FROM golang:1.25-alpine AS builder
 
-# Set environment variables for Go
+# Set Go environment
 ENV GO111MODULE=on \
     GOPROXY=https://proxy.golang.org
 
 # Install build dependencies
-RUN apk update && apk add --no-cache \
-    git \
-    bash \
-    make \
-    && rm -rf /var/cache/apk/*
+RUN apk add --no-cache git bash make
 
-# Set the Current Working Directory inside the container
+# Set working directory
 WORKDIR /app
 
-# Copy go mod and sum files to leverage Docker cache
+# Copy Go modules to leverage Docker cache
 COPY go.mod go.sum ./
 
 # Download dependencies
 RUN go mod tidy
 
-# Copy the entire application code
+# Copy application code
 COPY . .
 
-# Build the Go app (optimized for production)
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o statio-sync-worker ./cmd/worker
+# Build statically-linked, optimized Go binary
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o statio-worker ./cmd/worker
 
-# Stage 2: Final Stage (Minimal, Production-Ready Image)
-FROM alpine:latest
+# =========================
+# Stage 2: Final Stage (Minimal)
+# =========================
+FROM alpine:3.22
 
-# Install SSL certificates to avoid certificate errors
+# Install SSL certificates
 RUN apk add --no-cache ca-certificates
 
-# Add a non-root user for better security
+# Add non-root user
 RUN adduser -D -g '' statio
 
-# Set the Current Working Directory inside the container
+# Set working directory
 WORKDIR /app
 
-# Copy the pre-built binary from the builder stage
-COPY --from=builder /app/statio-sync-worker .
+# Copy binary from builder
+COPY --from=builder /app/statio-worker .
 
-# Use the non-root user to run the app
+# Switch to non-root user
 USER statio
 
-# Command to run the Go application
-CMD ["./statio-sync-worker"]
+# Run the app
+CMD ["./statio-worker"]
