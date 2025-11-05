@@ -135,7 +135,9 @@ func (i *DimensionRepositoryImpl) Update(dimension *models.Dimension) error {
 // FindByID implements DimensionRepository.
 func (i *DimensionRepositoryImpl) FindByID(id string) (*models.Dimension, error) {
 	var dimension models.Dimension
-	if err := i.db.Preload("Values").First(&dimension, "id = ?", id).Error; err != nil {
+	if err := i.db.Preload("Values", func(db *gorm.DB) *gorm.DB {
+		return db.Order("order ASC")
+	}).First(&dimension, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &dimension, nil
