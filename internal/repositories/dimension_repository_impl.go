@@ -136,7 +136,7 @@ func (i *DimensionRepositoryImpl) Update(dimension *models.Dimension) error {
 func (i *DimensionRepositoryImpl) FindByID(id string) (*models.Dimension, error) {
 	var dimension models.Dimension
 	if err := i.db.Preload("Values", func(db *gorm.DB) *gorm.DB {
-		return db.Order("order ASC")
+		return db.Order(`"order" ASC`)
 	}).First(&dimension, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
@@ -255,7 +255,7 @@ func (r *DimensionRepositoryImpl) FindPaginated(
 	var dimensions []*models.Dimension
 	if err := r.db.Preload("Values",
 		func(db *gorm.DB) *gorm.DB {
-			return db.Order("order ASC")
+			return db.Order(`"order" ASC`)
 		}).Where("id IN ?", ids).
 		Order(field + " " + sortOrder).
 		Find(&dimensions).Error; err != nil {
