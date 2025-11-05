@@ -253,8 +253,10 @@ func (r *DimensionRepositoryImpl) FindPaginated(
 
 	// 2. Query utama dengan preload Values
 	var dimensions []*models.Dimension
-	if err := r.db.Preload("Values").
-		Where("id IN ?", ids).
+	if err := r.db.Preload("Values",
+		func(db *gorm.DB) *gorm.DB {
+			return db.Order("order ASC")
+		}).Where("id IN ?", ids).
 		Order(field + " " + sortOrder).
 		Find(&dimensions).Error; err != nil {
 		return nil, err
