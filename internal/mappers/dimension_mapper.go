@@ -69,7 +69,9 @@ func ApplyDimensionUpdateFromRequest(dimension *models.Dimension, input *dto.Upd
 		if v.ID != nil && *v.ID != "" {
 			// update value lama jika ada
 			if existing, ok := existingValues[*v.ID]; ok {
-				existing.Name = v.Name
+				if v.Name != "" {
+					existing.Name = v.Name
+				}
 				existing.Order = idx
 				updatedValues = append(updatedValues, *existing)
 			} else {

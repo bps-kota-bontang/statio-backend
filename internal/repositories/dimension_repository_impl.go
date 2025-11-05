@@ -57,13 +57,26 @@ func (i *DimensionRepositoryImpl) Delete(id string) error {
 
 // Update implements DimensionRepository.
 func (i *DimensionRepositoryImpl) Update(dimension *models.Dimension) error {
+	tx := i.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
 	// Ambil semua ID value lama dari DB
 	var existingIDs []string
-	i.db.Model(&models.DimensionValue{}).
+	if err := tx.Model(&models.DimensionValue{}).
 		Where("dimension_id = ?", dimension.ID).
-		Pluck("id", &existingIDs)
+		Pluck("id", &existingIDs).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
 
-	// Map untuk menahan value yang dipertahankan
+	existingMap := make(map[string]bool)
+	for _, id := range existingIDs {
+		existingMap[id] = true
+	}
+
+	// ID yang masih dipertahankan (dari payload)
 	retainedIDs := make(map[string]bool)
 	for _, v := range dimension.Values {
 		if v.ID != "" {
@@ -71,7 +84,7 @@ func (i *DimensionRepositoryImpl) Update(dimension *models.Dimension) error {
 		}
 	}
 
-	// Hapus value yang tidak ada di retainedIDs
+	// Hapus value yang tidak dipertahankan
 	var deletedIDs []string
 	for _, id := range existingIDs {
 		if !retainedIDs[id] {
@@ -79,17 +92,44 @@ func (i *DimensionRepositoryImpl) Update(dimension *models.Dimension) error {
 		}
 	}
 	if len(deletedIDs) > 0 {
-		if err := i.db.Delete(&models.DimensionValue{}, deletedIDs).Error; err != nil {
+		if err := tx.Delete(&models.DimensionValue{}, deletedIDs).Error; err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
 
-	// Simpan dimension beserta value baru/diubah
-	if err := i.db.Save(dimension).Error; err != nil {
+	// Update nama dimension
+	if err := tx.Model(&models.Dimension{}).
+		Where("id = ?", dimension.ID).
+		Update("name", dimension.Name).Error; err != nil {
+		tx.Rollback()
 		return err
 	}
 
-	return nil
+	// Loop setiap value
+	for _, v := range dimension.Values {
+		if v.ID == "" {
+			// Value baru → buat
+			v.DimensionID = dimension.ID
+			if err := tx.Create(&v).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		} else {
+			// Value lama → update name dan order
+			if err := tx.Model(&models.DimensionValue{}).
+				Where("id = ?", v.ID).
+				Updates(map[string]any{
+					"name":  v.Name,
+					"order": v.Order,
+				}).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	return tx.Commit().Error
 }
 
 // FindByID implements DimensionRepository.
