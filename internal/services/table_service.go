@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"statio/internal/dto"
 	"statio/internal/mappers"
+	"statio/internal/models"
 	"statio/internal/repositories"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -70,13 +72,44 @@ func (s *TableService) GetAllPaginated(
 	return responses, total, nil
 }
 
-func (s *TableService) GetByID(id string, year int) (*dto.TableResponse, error) {
-	table, err := s.tableRepo.FindByIDAndYear(id, year)
+func (s *TableService) GetByID(id string, year *int) (*dto.TableResponse, error) {
+	var (
+		table *models.Table
+		err   error
+	)
+
+	// Default: gunakan year yang diberikan
+	useYear := year
+
+	countDimensions, err := s.tableRepo.CountDimensionsByTableID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	response := mappers.ToTableResponse(table, year)
+	if year != nil {
+		// Jika tidak ada dimension (nil atau 0), abaikan year
+		if countDimensions == nil || *countDimensions == 0 {
+			useYear = nil
+		}
+	} else {
+		// Jika year tidak diberikan, tapi table punya dimension, set useYear ke last year
+		if countDimensions != nil && *countDimensions > 0 {
+			lastYear := time.Now().Year() - 1
+			useYear = &lastYear
+		}
+	}
+
+	// Ambil tabel sesuai kondisi
+	if useYear == nil {
+		table, err = s.tableRepo.FindByID(id)
+	} else {
+		table, err = s.tableRepo.FindByIDAndYear(id, *useYear)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	response := mappers.ToTableResponse(table, useYear)
 	return response, nil
 }
 

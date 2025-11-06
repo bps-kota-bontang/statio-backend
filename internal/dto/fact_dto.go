@@ -13,11 +13,11 @@ type FactResponse struct {
 }
 
 type FactPayload struct {
-	Dimensions []string `json:"dimensions"` // array of DimensionValue IDs
+	Dimensions []string `json:"dimensions" validate:"required,min=0,max=2,dive,required"`
 	Value      *float64 `json:"value"`
+	Year       int      `json:"year"`
 }
 
 type UpdateFactRequest struct {
-	Year int           `json:"year"`
 	Data []FactPayload `json:"data"`
 }

@@ -34,21 +34,20 @@ func (s *FactService) SaveOrUpdateFacts(table *models.Table, payload *dto.Update
 	dimMap := utils.MapDimensionValues(table)
 
 	// pastikan FactDimensionValues ter-load
-	existingFacts, err := s.factRepo.FindAllByTableAndYear(table.ID, payload.Year)
+	existingFacts, err := s.factRepo.FindAllByTable(table.ID)
 	if err != nil {
 		return err
 	}
 
 	existingFactMap := make(map[string]*models.Fact)
 	for _, f := range existingFacts {
-		if len(f.FactDimensionValues) == 0 {
-			continue
-		}
 		dimIDs := make([]string, len(f.FactDimensionValues))
 		for i, fdv := range f.FactDimensionValues {
 			dimIDs[i] = fdv.DimensionValueID
 		}
-		key := utils.DimensionValueKeyFromIDs(dimIDs)
+
+		// sertakan year agar key unik per tahun
+		key := utils.DimensionValueYearKey(f.Year, dimIDs)
 		existingFactMap[key] = f
 	}
 
@@ -56,11 +55,10 @@ func (s *FactService) SaveOrUpdateFacts(table *models.Table, payload *dto.Update
 	var newFDVs []models.FactDimensionValue
 	var updateFacts []*models.Fact
 
-	for _, factData := range payload.Data {
-		if len(factData.Dimensions) == 0 {
-			return errors.New("dimensions cannot be empty")
-		}
+	// track dimensions per new fact so we can assign FDVs correctly after creating facts
+	var dimsForNewFact [][]string
 
+	for _, factData := range payload.Data {
 		// cek apakah semua dimensi valid
 		for _, dimID := range factData.Dimensions {
 			if _, ok := dimMap[dimID]; !ok {
@@ -68,18 +66,25 @@ func (s *FactService) SaveOrUpdateFacts(table *models.Table, payload *dto.Update
 			}
 		}
 
-		key := utils.DimensionValueKeyFromIDs(factData.Dimensions)
+		key := utils.DimensionValueYearKey(factData.Year, factData.Dimensions)
 
 		if fact, ok := existingFactMap[key]; ok {
+			// update existing fact (we keep pointer to update via batch)
 			fact.Value = factData.Value
+			fact.Year = factData.Year
 			updateFacts = append(updateFacts, fact)
 		} else {
+			// prepare new fact and its FDVs
 			newFact := models.Fact{
 				TableID: table.ID,
-				Year:    payload.Year,
+				Year:    factData.Year,
 				Value:   factData.Value,
 			}
 			newFacts = append(newFacts, newFact)
+			// append the dimensions for this new fact so we know how many FDVs belong to it
+			dimsForNewFact = append(dimsForNewFact, append([]string{}, factData.Dimensions...))
+
+			// create FDV entries without FactID for now; we'll set FactID after insert
 			for _, dimID := range factData.Dimensions {
 				newFDVs = append(newFDVs, models.FactDimensionValue{
 					DimensionValueID: dimID,
@@ -92,6 +97,7 @@ func (s *FactService) SaveOrUpdateFacts(table *models.Table, payload *dto.Update
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
+			panic(r) // re-panic after rollback so caller knows something bad happened
 		}
 	}()
 
@@ -114,17 +120,30 @@ func (s *FactService) SaveOrUpdateFacts(table *models.Table, payload *dto.Update
 		}
 		fmt.Printf("CreateFacts took: %v seconds\n", time.Since(startInsert).Seconds())
 
-		// assign FactID ke FactDimensionValues
+		// assign FactID ke FactDimensionValues using dimsForNewFact to know counts per new fact
 		fdvIdx := 0
-		for i, f := range newFacts {
-			dimsCount := len(payload.Data[i].Dimensions)
-			for j := 0; j < dimsCount; j++ {
-				newFDVs[fdvIdx].FactID = f.ID
+		for i := range newFacts {
+			// some ORMs populate IDs after Create; ensure we read the ID from newFacts[i]
+			factID := newFacts[i].ID
+			if factID == "" {
+				tx.Rollback()
+				return fmt.Errorf("fact ID is empty after insert for newFacts index %d", i)
+			}
+
+			dimsCount := len(dimsForNewFact[i])
+			for range dimsCount {
+				// guard index
+				if fdvIdx >= len(newFDVs) {
+					tx.Rollback()
+					return fmt.Errorf("internal error: fdv index out of range")
+				}
+				newFDVs[fdvIdx].FactID = factID
 				fdvIdx++
 			}
 		}
 	}
 
+	// insert FDVs
 	if len(newFDVs) > 0 {
 		startFDV := time.Now()
 		if err := s.factRepo.CreateFactDimensionValuesTx(tx, newFDVs); err != nil {

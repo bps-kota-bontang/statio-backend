@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"sort"
 	"statio/internal/models"
 	"strings"
@@ -28,5 +29,15 @@ func DimensionValueKeyFromIDs(ids []string) string {
 	sort.Strings(sorted)
 	key := strings.Join(sorted, "|") // gunakan separator aman untuk UUID
 
+	return key
+}
+
+func DimensionValueYearKey(year int, ids []string) string {
+	if len(ids) == 0 {
+		return fmt.Sprintf("%d", year)
+	}
+	sorted := append([]string{}, ids...) // copy agar original tidak berubah
+	sort.Strings(sorted)
+	key := fmt.Sprintf("%d|%s", year, strings.Join(sorted, "|"))
 	return key
 }

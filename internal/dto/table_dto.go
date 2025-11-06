@@ -20,5 +20,5 @@ type TableListResponse struct {
 type CreateTableRequest struct {
 	Name         string   `json:"name" validate:"required"`
 	IndicatorID  string   `json:"indicator_id" validate:"required"`
-	DimensionIDs []string `json:"dimension_ids" validate:"required,min=1,max=2,dive,required"`
+	DimensionIDs []string `json:"dimension_ids" validate:"required,min=0,max=2,dive,required"`
 }

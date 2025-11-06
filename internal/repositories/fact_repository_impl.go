@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"statio/internal/models"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -52,6 +53,15 @@ func (f *FactRepositoryImpl) FindAllByTableAndYear(tableID string, year int) ([]
 	return facts, nil
 }
 
+// Find all facts by table
+func (f *FactRepositoryImpl) FindAllByTable(tableID string) ([]*models.Fact, error) {
+	var facts []*models.Fact
+	if err := f.db.Preload("FactDimensionValues").Where("table_id = ?", tableID).Find(&facts).Error; err != nil {
+		return nil, err
+	}
+	return facts, nil
+}
+
 // Batch insert facts with transaction
 func (f *FactRepositoryImpl) CreateFactsTx(tx *gorm.DB, facts []models.Fact) error {
 	if len(facts) == 0 {
@@ -69,25 +79,39 @@ func (f *FactRepositoryImpl) CreateFactDimensionValuesTx(tx *gorm.DB, fdvs []mod
 }
 
 // Batch update facts with transaction using raw SQL CASE
+// Batch update facts with transaction using raw SQL CASE
 func (f *FactRepositoryImpl) UpdateFactsTx(tx *gorm.DB, facts []*models.Fact) error {
 	if len(facts) == 0 {
 		return nil
 	}
 
-	// Build SQL CASE statement
-	ids := make([]string, len(facts))
-	caseStmt := "CASE id "
+	// Build SQL CASE statement for "value"
+	caseStmt := "CASE"
+	pairs := make([]string, len(facts)) // for WHERE (id, year) IN (...)
+
 	for i, fct := range facts {
-		ids[i] = fct.ID
+		// ensure IDs are present
+		if fct.ID == "" {
+			return fmt.Errorf("fact ID is empty for update index %d", i)
+		}
+		pairs[i] = fmt.Sprintf("('%s', %d)", fct.ID, fct.Year)
+
 		if fct.Value != nil {
-			caseStmt += fmt.Sprintf("WHEN '%s' THEN %f ", fct.ID, *fct.Value)
+			// use full precision float formatting
+			caseStmt += fmt.Sprintf(" WHEN id = '%s' AND year = %d THEN %f", fct.ID, fct.Year, *fct.Value)
 		} else {
-			caseStmt += fmt.Sprintf("WHEN '%s' THEN NULL::double precision ", fct.ID)
+			// set NULL for NULL values
+			caseStmt += fmt.Sprintf(" WHEN id = '%s' AND year = %d THEN NULL::double precision", fct.ID, fct.Year)
 		}
 	}
-	caseStmt += "END"
 
-	query := fmt.Sprintf("UPDATE facts SET value = %s WHERE id IN ?", caseStmt)
+	caseStmt += " END"
 
-	return tx.Exec(query, ids).Error
+	// Build WHERE clause with (id, year)
+	whereClause := fmt.Sprintf("WHERE (id, year) IN (%s)", strings.Join(pairs, ", "))
+
+	// Final query: update only value column
+	query := fmt.Sprintf("UPDATE facts SET value = %s %s", caseStmt, whereClause)
+
+	return tx.Exec(query).Error
 }

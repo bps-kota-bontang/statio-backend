@@ -10,6 +10,19 @@ type TableRepositoryImpl struct {
 	db *gorm.DB
 }
 
+// CountDimensionsByTableID implements TableRepository.
+func (j *TableRepositoryImpl) CountDimensionsByTableID(tableID string) (*int64, error) {
+	var count int64
+	err := j.db.Model(&models.TableDimension{}).
+		Where("table_id = ?", tableID).
+		Count(&count).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &count, nil
+}
+
 // CreateWithTx implements TableRepository.
 func (j *TableRepositoryImpl) CreateWithTx(tx *gorm.DB, table *models.Table) error {
 	return tx.Create(table).Error

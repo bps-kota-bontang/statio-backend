@@ -4,7 +4,6 @@ import (
 	"statio/internal/dto"
 	"statio/internal/services"
 	"statio/utils"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -69,7 +68,12 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 
 func (h *TableHandler) GetTable(c *fiber.Ctx) error {
 	id := c.Params("id")
-	year := c.QueryInt("year", time.Now().Year())
+	yearParam := c.QueryInt("year")
+
+	var year *int
+	if yearParam != 0 {
+		year = &yearParam
+	}
 
 	table, err := h.service.GetByID(id, year)
 	if err != nil {

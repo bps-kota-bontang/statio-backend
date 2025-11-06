@@ -7,7 +7,7 @@ import (
 )
 
 // ToTableResponse mengubah models.Table menjadi dto.TableResponse
-func ToTableResponse(table *models.Table, year int) *dto.TableResponse {
+func ToTableResponse(table *models.Table, year *int) *dto.TableResponse {
 	resp := &dto.TableResponse{
 		ID:          table.ID,
 		Name:        table.Name,
@@ -36,10 +36,11 @@ func ToTableResponse(table *models.Table, year int) *dto.TableResponse {
 
 	// Transform Facts untuk indikator ini dan tahun tertentu
 	for _, f := range table.Facts {
-		if f.Year != year {
-			continue
+		if year != nil {
+			if f.Year != *year {
+				continue
+			}
 		}
-
 		fr := ToFactResponse(&f)
 
 		// Pastikan semua dimension tercakup
@@ -64,7 +65,9 @@ func ToTableResponse(table *models.Table, year int) *dto.TableResponse {
 		resp.Facts = append(resp.Facts, *fr)
 	}
 
-	resp.Facts = TransformFactsWithBlanks(table, year)
+	if year != nil {
+		resp.Facts = TransformFactsWithBlanks(table, *year)
+	}
 
 	return resp
 }

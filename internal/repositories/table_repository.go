@@ -15,6 +15,7 @@ type TableRepository interface {
 		sortBy, sortOrder string,
 		filters map[string][]string,
 	) ([]*models.Table, error)
+	CountDimensionsByTableID(tableID string) (*int64, error)
 	FindByID(id string) (*models.Table, error)
 	FindByIDAndYear(id string, year int) (*models.Table, error)
 	FindByIDForFactUpdate(id string) (*models.Table, error)
