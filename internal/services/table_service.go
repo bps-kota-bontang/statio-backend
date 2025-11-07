@@ -101,7 +101,7 @@ func (s *TableService) GetByID(id string, year *int) (*dto.TableResponse, error)
 
 	// Ambil tabel sesuai kondisi
 	if useYear == nil {
-		table, err = s.tableRepo.FindByID(id)
+		table, err = s.tableRepo.FindDetailedByID(id)
 	} else {
 		table, err = s.tableRepo.FindByIDAndYear(id, *useYear)
 	}
@@ -114,7 +114,7 @@ func (s *TableService) GetByID(id string, year *int) (*dto.TableResponse, error)
 }
 
 func (s *TableService) UpdateTableFacts(tableID string, payload *dto.UpdateFactRequest) error {
-	table, err := s.tableRepo.FindByIDForFactUpdate(tableID)
+	table, err := s.tableRepo.FindForFactUpdate(tableID)
 	if err != nil || table == nil {
 		return fmt.Errorf("table not found")
 	}
@@ -153,4 +153,17 @@ func (s *TableService) Create(input *dto.CreateTableRequest) (*dto.TableListResp
 
 	result = mappers.ToTableListResponse(table)
 	return result, nil
+}
+
+func (s *TableService) Update(id string, input *dto.UpdateTableRequest) error {
+	table, err := s.tableRepo.FindBaseByID(id)
+	if err != nil {
+		return err
+	}
+
+	// Apply perubahan dasar
+	mappers.ApplyTableUpdateFromRequest(table, input)
+
+	// Lanjut ke repository
+	return s.tableRepo.UpdateWithRelations(table, input.DimensionIDs)
 }

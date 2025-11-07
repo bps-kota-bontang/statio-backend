@@ -22,3 +22,9 @@ type CreateTableRequest struct {
 	IndicatorID  string   `json:"indicator_id" validate:"required"`
 	DimensionIDs []string `json:"dimension_ids" validate:"required,min=0,max=2,dive,required"`
 }
+
+type UpdateTableRequest struct {
+	Name         *string  `json:"name,omitempty"`
+	IndicatorID  *string  `json:"indicator_id,omitempty"`
+	DimensionIDs []string `json:"dimension_ids,omitempty"`
+}

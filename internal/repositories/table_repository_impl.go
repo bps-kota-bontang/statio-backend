@@ -10,6 +10,57 @@ type TableRepositoryImpl struct {
 	db *gorm.DB
 }
 
+// FindBaseByID implements TableRepository.
+func (j *TableRepositoryImpl) FindBaseByID(id string) (*models.Table, error) {
+	var table *models.Table
+	if err := j.db.
+		Where("id = ?", id).
+		First(&table).Error; err != nil {
+		return nil, err
+	}
+	return table, nil
+}
+
+// Update implements TableRepository.
+func (r *TableRepositoryImpl) UpdateWithRelations(table *models.Table, dimensionIDs []string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// Update field utama
+		if err := tx.Save(table).Error; err != nil {
+			return err
+		}
+
+		// Jika field dimension_ids dikirim, baru proses relasi
+		if dimensionIDs != nil {
+			// Hapus semua relasi lama
+			if err := tx.Where("table_id = ?", table.ID).Delete(&models.TableDimension{}).Error; err != nil {
+				return err
+			}
+
+			// Tambahkan relasi baru (jika ada)
+			if len(dimensionIDs) > 0 {
+				newDimensions := make([]models.TableDimension, len(dimensionIDs))
+				for i, dimID := range dimensionIDs {
+					newDimensions[i] = models.TableDimension{
+						TableID:     table.ID,
+						DimensionID: dimID,
+					}
+				}
+				if err := tx.Create(&newDimensions).Error; err != nil {
+					return err
+				}
+			}
+
+			// Update direction berdasarkan jumlah dimensi baru
+			table.Direction = len(dimensionIDs)
+			if err := tx.Model(table).Update("direction", table.Direction).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
 // CountDimensionsByTableID implements TableRepository.
 func (j *TableRepositoryImpl) CountDimensionsByTableID(tableID string) (*int64, error) {
 	var count int64
@@ -272,7 +323,7 @@ func (j *TableRepositoryImpl) FindAll() ([]*models.Table, error) {
 }
 
 // FindByIDForFactUpdate implements TableRepository.
-func (j *TableRepositoryImpl) FindByIDForFactUpdate(id string) (*models.Table, error) {
+func (j *TableRepositoryImpl) FindForFactUpdate(id string) (*models.Table, error) {
 	var table models.Table
 	if err := j.db.
 		Preload("Dimensions.Dimension.Values", func(db *gorm.DB) *gorm.DB {
@@ -291,7 +342,7 @@ func NewTableRepository(db *gorm.DB) TableRepository {
 	}
 }
 
-func (j *TableRepositoryImpl) FindByID(id string) (*models.Table, error) {
+func (j *TableRepositoryImpl) FindDetailedByID(id string) (*models.Table, error) {
 	var table models.Table
 	if err := j.db.
 		Preload("Indicator").

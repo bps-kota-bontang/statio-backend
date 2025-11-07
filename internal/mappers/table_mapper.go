@@ -185,3 +185,12 @@ func ToTableModel(input *dto.CreateTableRequest) *models.Table {
 
 	return table
 }
+
+func ApplyTableUpdateFromRequest(table *models.Table, input *dto.UpdateTableRequest) {
+	if input.Name != nil {
+		table.Name = *input.Name
+	}
+	if input.IndicatorID != nil {
+		table.IndicatorID = *input.IndicatorID
+	}
+}

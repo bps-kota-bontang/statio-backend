@@ -16,8 +16,10 @@ type TableRepository interface {
 		filters map[string][]string,
 	) ([]*models.Table, error)
 	CountDimensionsByTableID(tableID string) (*int64, error)
-	FindByID(id string) (*models.Table, error)
+	FindBaseByID(id string) (*models.Table, error)
+	FindDetailedByID(id string) (*models.Table, error)
 	FindByIDAndYear(id string, year int) (*models.Table, error)
-	FindByIDForFactUpdate(id string) (*models.Table, error)
+	FindForFactUpdate(id string) (*models.Table, error)
 	CreateWithTx(tx *gorm.DB, table *models.Table) error
+	UpdateWithRelations(table *models.Table, dimensionIDs []string) error
 }

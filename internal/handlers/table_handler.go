@@ -153,3 +153,37 @@ func (h *TableHandler) CreateTable(c *fiber.Ctx) error {
 		"message": "Table created successfully",
 	})
 }
+
+func (h *TableHandler) UpdateTable(c *fiber.Ctx) error {
+	id := c.Params("id")
+	var payload dto.UpdateTableRequest
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid request body",
+		})
+	}
+
+	if err := h.validate.Struct(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	if err := h.service.Update(id, &payload); err != nil {
+		status := 500
+		if err == gorm.ErrRecordNotFound {
+			status = 404
+		}
+		return c.Status(status).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    nil,
+		"message": "Table updated successfully",
+	})
+}
