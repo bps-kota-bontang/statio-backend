@@ -33,6 +33,31 @@ func (s *OrganizationService) GetAll() ([]*dto.OrganizationResponse, error) {
 	return responses, nil
 }
 
+// Create creates a new organization.
+func (s *OrganizationService) Create(req *dto.CreateOrganizationRequest) (*dto.OrganizationResponse, error) {
+	org := mappers.ToOrganizationModel(req)
+	if err := s.organizationRepo.Create(org); err != nil {
+		return nil, err
+	}
+	return mappers.ToOrganizationResponse(org), nil
+}
+
+// Update updates an existing organization.
+func (s *OrganizationService) Update(id string, req *dto.UpdateOrganizationRequest) (*dto.OrganizationResponse, error) {
+	org, err := s.organizationRepo.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	mappers.ApplyOrganizationUpdateFromRequest(org, req)
+
+	if err := s.organizationRepo.Update(org); err != nil {
+		return nil, err
+	}
+
+	return mappers.ToOrganizationResponse(org), nil
+}
+
 // AssignTablesToOrganization associates tables with an organization.
 func (s *OrganizationService) AssignTablesToOrganization(organizationID string, req *dto.AssignTablesRequest) error {
 	return s.tableSvc.AssignOrganizationBulk(organizationID, req.TableIDs)

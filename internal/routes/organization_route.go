@@ -10,5 +10,7 @@ import (
 func RegisterOrganizationRoutes(router fiber.Router, handler *handlers.OrganizationHandler) {
 	organization := router.Group("/organizations")
 	organization.Get("/", handler.GetAllOrganizations)
+	organization.Post("/", handler.CreateOrganization)
+	organization.Put("/:id", handler.UpdateOrganization)
 	organization.Post("/:id/tables", handler.AssignTables)
 }

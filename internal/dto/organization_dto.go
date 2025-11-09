@@ -8,3 +8,11 @@ type OrganizationResponse struct {
 type AssignTablesRequest struct {
 	TableIDs []string `json:"table_ids" validate:"required,min=1,dive,required"`
 }
+
+type CreateOrganizationRequest struct {
+	Name string `json:"name" validate:"required"`
+}
+
+type UpdateOrganizationRequest struct {
+	Name *string `json:"name" validate:"required"`
+}
