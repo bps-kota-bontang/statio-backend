@@ -130,14 +130,14 @@ func (j *TableRepositoryImpl) Count(search string, filters map[string][]string, 
 			}
 
 			if hasNull && len(realValues) > 0 {
-				subQuery = subQuery.Where("d.name IN ? OR d.name IS NULL OR d.name = ''", realValues)
+				subQuery = subQuery.Where("d.name IN ?", realValues)
+				query = query.Where("tables.id IN (?) OR NOT EXISTS (SELECT 1 FROM table_dimensions td2 WHERE td2.table_id = tables.id)", subQuery)
 			} else if hasNull {
-				subQuery = subQuery.Where("d.name IS NULL OR d.name = ''")
+				query = query.Where("NOT EXISTS (SELECT 1 FROM table_dimensions td WHERE td.table_id = tables.id)")
 			} else {
 				subQuery = subQuery.Where("d.name IN ?", realValues)
+				query = query.Where("tables.id IN (?)", subQuery)
 			}
-
-			query = query.Where("tables.id IN (?)", subQuery)
 
 		case "indicator_name":
 			hasNull := false
@@ -245,7 +245,8 @@ func (j *TableRepositoryImpl) FindPaginated(search string, limit int, offset int
 		case "dimensions":
 			subQuery := j.db.Table("table_dimensions td").
 				Select("td.table_id").
-				Joins("JOIN dimensions d ON d.id = td.dimension_id")
+				Joins("JOIN dimensions d ON d.id = td.dimension_id").
+				Where("td.deleted_at IS NULL")
 
 			hasNull := false
 			realValues := make([]string, 0, len(values))
@@ -258,14 +259,14 @@ func (j *TableRepositoryImpl) FindPaginated(search string, limit int, offset int
 			}
 
 			if hasNull && len(realValues) > 0 {
-				subQuery = subQuery.Where("d.name IN ? OR d.name IS NULL OR d.name = ''", realValues)
+				subQuery = subQuery.Where("d.name IN ?", realValues)
+				query = query.Where("tables.id IN (?) OR NOT EXISTS (SELECT 1 FROM table_dimensions td2 WHERE td2.table_id = tables.id)", subQuery)
 			} else if hasNull {
-				subQuery = subQuery.Where("d.name IS NULL OR d.name = ''")
+				query = query.Where("NOT EXISTS (SELECT 1 FROM table_dimensions td WHERE td.table_id = tables.id)")
 			} else {
 				subQuery = subQuery.Where("d.name IN ?", realValues)
+				query = query.Where("tables.id IN (?)", subQuery)
 			}
-
-			query = query.Where("tables.id IN (?)", subQuery)
 
 		case "indicator_name":
 			hasNull := false

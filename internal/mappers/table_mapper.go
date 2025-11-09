@@ -157,8 +157,11 @@ func ToTableListResponse(table *models.Table) *dto.TableListResponse {
 	resp := &dto.TableListResponse{
 		ID:         table.ID,
 		Name:       table.Name,
-		Indicator:  *ToIndicatorListResponse(table.Indicator),
 		Dimensions: extractDimensionNames(table.Dimensions),
+	}
+
+	if table.Indicator != nil {
+		resp.Indicator = ToIndicatorListResponse(table.Indicator)
 	}
 
 	if table.Organization != nil {
