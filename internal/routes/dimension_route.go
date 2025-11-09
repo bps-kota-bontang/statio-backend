@@ -10,6 +10,7 @@ import (
 func RegisterDimensionRoutes(router fiber.Router, handler *handlers.DimensionHandler) {
 	dimension := router.Group("/dimensions")
 	dimension.Get("/", handler.GetAllDimensions)
+	dimension.Get("/names", handler.GetAllDimensionNames)
 	dimension.Post("/", handler.CreateDimension)
 	dimension.Get("/:id", handler.GetDimension)
 	dimension.Put("/:id", handler.UpdateDimension)

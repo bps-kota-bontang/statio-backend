@@ -26,22 +26,6 @@ func (h *DimensionHandler) GetAllDimensions(c *fiber.Ctx) error {
 	search := c.Query("search")
 	page := c.QueryInt("page", 1)
 	perPage := c.QueryInt("per_page", 10)
-	field := c.Query("field")
-
-	if field == "name" {
-		Dimensions, err := h.service.GetAllNames()
-		if err != nil {
-			return c.Status(500).JSON(fiber.Map{
-				"data":    nil,
-				"message": err.Error(),
-			})
-		}
-
-		return c.JSON(fiber.Map{
-			"data":    Dimensions,
-			"message": "Dimension names fetched successfully",
-		})
-	}
 
 	// Ambil filters per kolom, bisa multiple
 	filters := map[string][]string{}
@@ -157,5 +141,20 @@ func (h *DimensionHandler) UpdateDimension(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"data":    Dimension,
 		"message": "Dimension updated successfully",
+	})
+}
+
+func (h *DimensionHandler) GetAllDimensionNames(c *fiber.Ctx) error {
+	Dimensions, err := h.service.GetAllNames()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    Dimensions,
+		"message": "Dimension names fetched successfully",
 	})
 }

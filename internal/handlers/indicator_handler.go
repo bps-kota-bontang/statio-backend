@@ -26,52 +26,6 @@ func (h *IndicatorHandler) GetAllIndicators(c *fiber.Ctx) error {
 	search := c.Query("search")
 	page := c.QueryInt("page", 1)
 	perPage := c.QueryInt("per_page", 10)
-	field := c.Query("field")
-
-	if field == "name" {
-		names, err := h.service.GetAllNames()
-		if err != nil {
-			return c.Status(500).JSON(fiber.Map{
-				"data":    nil,
-				"message": err.Error(),
-			})
-		}
-
-		return c.JSON(fiber.Map{
-			"data":    names,
-			"message": "Indicator names fetched successfully",
-		})
-	}
-
-	if field == "measure" {
-		measures, err := h.service.GetAllMeasures()
-		if err != nil {
-			return c.Status(500).JSON(fiber.Map{
-				"data":    nil,
-				"message": err.Error(),
-			})
-		}
-
-		return c.JSON(fiber.Map{
-			"data":    measures,
-			"message": "Indicator measures fetched successfully",
-		})
-	}
-
-	if field == "unit" {
-		units, err := h.service.GetAllUnits()
-		if err != nil {
-			return c.Status(500).JSON(fiber.Map{
-				"data":    nil,
-				"message": err.Error(),
-			})
-		}
-
-		return c.JSON(fiber.Map{
-			"data":    units,
-			"message": "Indicator units fetched successfully",
-		})
-	}
 
 	// Ambil filters per kolom, bisa multiple
 	filters := map[string][]string{}
@@ -187,5 +141,50 @@ func (h *IndicatorHandler) UpdateIndicator(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"data":    indicator,
 		"message": "Indicator updated successfully",
+	})
+}
+
+func (h *IndicatorHandler) GetAllIndicatorNames(c *fiber.Ctx) error {
+	names, err := h.service.GetAllNames()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    names,
+		"message": "Indicator names fetched successfully",
+	})
+}
+
+func (h *IndicatorHandler) GetAllIndicatorMeasures(c *fiber.Ctx) error {
+	measures, err := h.service.GetAllMeasures()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    measures,
+		"message": "Indicator measures fetched successfully",
+	})
+}
+
+func (h *IndicatorHandler) GetAllIndicatorUnits(c *fiber.Ctx) error {
+	units, err := h.service.GetAllUnits()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    units,
+		"message": "Indicator units fetched successfully",
 	})
 }
