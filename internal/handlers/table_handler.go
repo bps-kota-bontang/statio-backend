@@ -37,6 +37,7 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 		"indicator_unit",
 		"dimensions",
 		"organization_id",
+		"labels",
 	}
 	for _, key := range keys {
 		// c.Context().QueryArgs().PeekMulti(key) mengembalikan [][]byte
@@ -186,5 +187,49 @@ func (h *TableHandler) UpdateTable(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"data":    nil,
 		"message": "Table updated successfully",
+	})
+}
+
+func (h *TableHandler) GetTableLabels(c *fiber.Ctx) error {
+	response, err := h.service.GetAllLabels()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    response,
+		"message": "Table labels fetched successfully",
+	})
+}
+
+func (h *TableHandler) AddLabelsToTables(c *fiber.Ctx) error {
+	var payload dto.AddLabelsToTablesRequest
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid request payload",
+		})
+	}
+
+	if err := h.validate.Struct(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	if err := h.service.AddLabelsBulk(&payload); err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    nil,
+		"message": "Labels added to tables successfully",
 	})
 }

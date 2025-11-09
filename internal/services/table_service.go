@@ -169,3 +169,23 @@ func (s *TableService) UpdateWithRelations(id string, input *dto.UpdateTableRequ
 func (s *TableService) AssignOrganizationBulk(organizationID string, tableIDs []string) error {
 	return s.tableRepo.UpdateOrganizationBulk(organizationID, tableIDs)
 }
+
+func (s *TableService) AddLabelsBulk(
+	input *dto.AddLabelsToTablesRequest,
+) error {
+	return s.tableRepo.AddLabelsBulk(input.Labels, input.TableIDs)
+}
+
+func (s *TableService) GetAllLabels() ([]*dto.TableLabelResponse, error) {
+	labels, err := s.tableRepo.FindAllLabels()
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]*dto.TableLabelResponse, 0, len(labels))
+	for _, label := range labels {
+		responses = append(responses, mappers.ToTableLabelResponse(*label))
+	}
+
+	return responses, nil
+}

@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -15,6 +16,7 @@ type Table struct {
 	Indicator      *Indicator       `gorm:"foreignKey:IndicatorID;constraint:OnDelete:CASCADE"`
 	OrganizationID *string          `gorm:"type:uuid;index"`
 	Organization   *Organization    `gorm:"foreignKey:OrganizationID;constraint:OnDelete:CASCADE"`
+	Labels         pq.StringArray   `gorm:"type:text[]"`
 	Dimensions     []TableDimension `gorm:"foreignKey:TableID;constraint:OnDelete:CASCADE"`
 	Facts          []Fact           `gorm:"foreignKey:TableID;constraint:OnDelete:CASCADE"`
 	CreatedAt      time.Time

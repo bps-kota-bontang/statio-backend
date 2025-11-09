@@ -24,4 +24,6 @@ type TableRepository interface {
 	UpdateWithRelations(table *models.Table, dimensionIDs []string) error
 	Update(table *models.Table) error
 	UpdateOrganizationBulk(organizationID string, tableIDs []string) error
+	AddLabelsBulk(labels []string, tableIDs []string) error
+	FindAllLabels() ([]*string, error)
 }

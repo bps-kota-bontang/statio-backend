@@ -3,11 +3,42 @@ package repositories
 import (
 	"statio/internal/models"
 
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
 type TableRepositoryImpl struct {
 	db *gorm.DB
+}
+
+// FindAllLabels implements TableRepository.
+func (r *TableRepositoryImpl) FindAllLabels() ([]*string, error) {
+	var labels []*string
+
+	// Jalankan raw SQL untuk ambil semua label unik
+	if err := r.db.
+		Model(&models.Table{}).
+		Select("DISTINCT UNNEST(labels)").
+		Find(&labels).Error; err != nil {
+		return nil, err
+	}
+
+	return labels, nil
+}
+
+// UpdateLabelBulk implements TableRepository.
+func (r *TableRepositoryImpl) AddLabelsBulk(labels []string, tableIDs []string) error {
+	return r.db.
+		Model(&models.Table{}).
+		Where("id IN ?", tableIDs).
+		Update("labels", gorm.Expr(`
+			ARRAY(
+				SELECT DISTINCT UNNEST(
+					array_cat(COALESCE(labels, '{}'), ?)
+				)
+			)
+		`, pq.Array(labels))).
+		Error
 }
 
 // UpdateOrganizationBulk implements TableRepository.
@@ -114,6 +145,23 @@ func (j *TableRepositoryImpl) Count(search string, filters map[string][]string, 
 		}
 
 		switch col {
+		case "labels":
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+			if hasNull && len(realValues) > 0 {
+				query = query.Where("?::text[] && labels OR labels IS NULL OR array_length(labels, 1) = 0", pq.Array(realValues))
+			} else if hasNull {
+				query = query.Where("labels IS NULL OR array_length(labels, 1) = 0")
+			} else {
+				query = query.Where("?::text[] && labels", pq.Array(realValues))
+			}
 		case "dimensions":
 			subQuery := j.db.Table("table_dimensions td").
 				Select("td.table_id").
@@ -242,6 +290,23 @@ func (j *TableRepositoryImpl) FindPaginated(search string, limit int, offset int
 		}
 
 		switch col {
+		case "labels":
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+			if hasNull && len(realValues) > 0 {
+				query = query.Where("?::text[] && labels OR labels IS NULL OR array_length(labels, 1) = 0", pq.Array(realValues))
+			} else if hasNull {
+				query = query.Where("labels IS NULL OR array_length(labels, 1) = 0")
+			} else {
+				query = query.Where("?::text[] && labels", pq.Array(realValues))
+			}
 		case "dimensions":
 			subQuery := j.db.Table("table_dimensions td").
 				Select("td.table_id").

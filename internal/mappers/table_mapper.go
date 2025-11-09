@@ -13,6 +13,7 @@ func ToTableResponse(table *models.Table, year *int) *dto.TableResponse {
 		Name:        table.Name,
 		Direction:   table.Direction,
 		Description: table.Description,
+		Labels:      table.Labels,
 		Dimensions:  []dto.DimensionResponse{},
 		Facts:       []dto.FactResponse{},
 	}
@@ -157,6 +158,7 @@ func ToTableListResponse(table *models.Table) *dto.TableListResponse {
 	resp := &dto.TableListResponse{
 		ID:         table.ID,
 		Name:       table.Name,
+		Labels:     table.Labels,
 		Dimensions: extractDimensionNames(table.Dimensions),
 	}
 
@@ -211,5 +213,12 @@ func ApplyTableUpdateFromRequest(table *models.Table, input *dto.UpdateTableRequ
 
 	if input.OrganizationID != nil {
 		table.OrganizationID = input.OrganizationID
+	}
+}
+
+// ToTableLabelResponse mengubah models.Table menjadi dto.TableLabelResponse
+func ToTableLabelResponse(label string) *dto.TableLabelResponse {
+	return &dto.TableLabelResponse{
+		Name: label,
 	}
 }
