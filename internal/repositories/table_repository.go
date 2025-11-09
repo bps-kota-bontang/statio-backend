@@ -22,4 +22,6 @@ type TableRepository interface {
 	FindForFactUpdate(id string) (*models.Table, error)
 	CreateWithTx(tx *gorm.DB, table *models.Table) error
 	UpdateWithRelations(table *models.Table, dimensionIDs []string) error
+	Update(table *models.Table) error
+	UpdateOrganizationBulk(organizationID string, tableIDs []string) error
 }

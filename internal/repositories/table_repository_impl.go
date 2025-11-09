@@ -10,6 +10,18 @@ type TableRepositoryImpl struct {
 	db *gorm.DB
 }
 
+// UpdateOrganizationBulk implements TableRepository.
+func (j *TableRepositoryImpl) UpdateOrganizationBulk(organizationID string, tableIDs []string) error {
+	return j.db.Model(&models.Table{}).
+		Where("id IN ?", tableIDs).
+		Update("organization_id", organizationID).Error
+}
+
+// Update implements TableRepository.
+func (j *TableRepositoryImpl) Update(table *models.Table) error {
+	return j.db.Save(table).Error
+}
+
 // FindBaseByID implements TableRepository.
 func (j *TableRepositoryImpl) FindBaseByID(id string) (*models.Table, error) {
 	var table *models.Table
@@ -180,6 +192,24 @@ func (j *TableRepositoryImpl) Count(search string, filters map[string][]string, 
 			} else {
 				query = query.Where("i.unit IN ?", realValues)
 			}
+
+		case "organization_id":
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+			if hasNull && len(realValues) > 0 {
+				query = query.Where("tables.organization_id IN ? OR tables.organization_id IS NULL", realValues)
+			} else if hasNull {
+				query = query.Where("tables.organization_id IS NULL")
+			} else {
+				query = query.Where("tables.organization_id IN ?", realValues)
+			}
 		}
 	}
 
@@ -189,7 +219,7 @@ func (j *TableRepositoryImpl) Count(search string, filters map[string][]string, 
 // FindPaginated implements TableRepository.
 func (j *TableRepositoryImpl) FindPaginated(search string, limit int, offset int, sortBy string, sortOrder string, filters map[string][]string) ([]*models.Table, error) {
 	var tables []*models.Table
-	query := j.db.Preload("Indicator").Preload("Dimensions.Dimension").
+	query := j.db.Preload("Indicator").Preload("Dimensions.Dimension").Preload("Organization").
 		Model(&models.Table{}).
 		Joins("LEFT JOIN indicators i ON i.id = tables.indicator_id").
 		Limit(limit).Offset(offset)
@@ -290,6 +320,23 @@ func (j *TableRepositoryImpl) FindPaginated(search string, limit int, offset int
 			} else {
 				query = query.Where("i.unit IN ?", realValues)
 			}
+		case "organization_id":
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+			if hasNull && len(realValues) > 0 {
+				query = query.Where("tables.organization_id IN ? OR tables.organization_id IS NULL", realValues)
+			} else if hasNull {
+				query = query.Where("tables.organization_id IS NULL")
+			} else {
+				query = query.Where("tables.organization_id IN ?", realValues)
+			}
 		}
 	}
 
@@ -316,7 +363,7 @@ func (j *TableRepositoryImpl) FindPaginated(search string, limit int, offset int
 // FindAll implements TableRepository.
 func (j *TableRepositoryImpl) FindAll() ([]*models.Table, error) {
 	var tables []*models.Table
-	if err := j.db.Preload("Indicator").Preload("Dimensions.Dimension").Find(&tables).Error; err != nil {
+	if err := j.db.Preload("Indicator").Preload("Dimensions.Dimension").Preload("Organization").Find(&tables).Error; err != nil {
 		return nil, err
 	}
 	return tables, nil
@@ -347,6 +394,7 @@ func (j *TableRepositoryImpl) FindDetailedByID(id string) (*models.Table, error)
 	if err := j.db.
 		Preload("Indicator").
 		Preload("Facts.FactDimensionValues.DimensionValue.Dimension").
+		Preload("Organization").
 		Preload("Dimensions.Dimension.Values", func(db *gorm.DB) *gorm.DB {
 			return db.Order(`"order" ASC`)
 		}).
@@ -362,6 +410,7 @@ func (j *TableRepositoryImpl) FindByIDAndYear(id string, year int) (*models.Tabl
 	if err := j.db.
 		Preload("Indicator").
 		Preload("Facts", "year = ?", year).
+		Preload("Organization").
 		Preload("Facts.FactDimensionValues.DimensionValue.Dimension").
 		Preload("Dimensions.Dimension.Values", func(db *gorm.DB) *gorm.DB {
 			return db.Order(`"order" ASC`)

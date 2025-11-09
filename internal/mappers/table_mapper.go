@@ -34,6 +34,11 @@ func ToTableResponse(table *models.Table, year *int) *dto.TableResponse {
 		resp.Indicator = ToIndicatorResponse(table.Indicator)
 	}
 
+	// Transform Organization (jika ada)
+	if table.Organization != nil {
+		resp.Organization = ToOrganizationResponse(table.Organization)
+	}
+
 	// Transform Facts untuk indikator ini dan tahun tertentu
 	for _, f := range table.Facts {
 		if year != nil {
@@ -149,12 +154,18 @@ func TransformFactsWithBlanks(table *models.Table, year int) []dto.FactResponse 
 
 // ToTableListResponse mengubah models.Table menjadi dto.TableListResponse
 func ToTableListResponse(table *models.Table) *dto.TableListResponse {
-	return &dto.TableListResponse{
+	resp := &dto.TableListResponse{
 		ID:         table.ID,
 		Name:       table.Name,
 		Indicator:  *ToIndicatorListResponse(table.Indicator),
 		Dimensions: extractDimensionNames(table.Dimensions),
 	}
+
+	if table.Organization != nil {
+		resp.Organization = ToOrganizationResponse(table.Organization)
+	}
+
+	return resp
 }
 
 func extractDimensionNames(dims []models.TableDimension) []string {
@@ -177,10 +188,11 @@ func ToTableModel(input *dto.CreateTableRequest) *models.Table {
 	}
 
 	table := &models.Table{
-		Name:        input.Name,
-		Direction:   len(input.DimensionIDs),
-		IndicatorID: input.IndicatorID,
-		Dimensions:  dimensions,
+		Name:           input.Name,
+		Direction:      len(input.DimensionIDs),
+		IndicatorID:    input.IndicatorID,
+		OrganizationID: input.OrganizationID,
+		Dimensions:     dimensions,
 	}
 
 	return table
@@ -192,5 +204,9 @@ func ApplyTableUpdateFromRequest(table *models.Table, input *dto.UpdateTableRequ
 	}
 	if input.IndicatorID != nil {
 		table.IndicatorID = *input.IndicatorID
+	}
+
+	if input.OrganizationID != nil {
+		table.OrganizationID = input.OrganizationID
 	}
 }

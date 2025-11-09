@@ -10,4 +10,5 @@ var HandlerSet = wire.NewSet(
 	handlers.NewTableHandler,
 	handlers.NewIndicatorHandler,
 	handlers.NewDimensionHandler,
+	handlers.NewOrganizationHandler,
 )

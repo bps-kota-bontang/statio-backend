@@ -36,6 +36,7 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 		"indicator_measure",
 		"indicator_unit",
 		"dimensions",
+		"organization_id",
 	}
 	for _, key := range keys {
 		// c.Context().QueryArgs().PeekMulti(key) mengembalikan [][]byte
@@ -171,7 +172,7 @@ func (h *TableHandler) UpdateTable(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := h.service.Update(id, &payload); err != nil {
+	if err := h.service.UpdateWithRelations(id, &payload); err != nil {
 		status := 500
 		if err == gorm.ErrRecordNotFound {
 			status = 404

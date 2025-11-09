@@ -15,6 +15,7 @@ func NewFiberApp(
 	TableHandler *handlers.TableHandler,
 	IndicatorHandler *handlers.IndicatorHandler,
 	DimensionHandler *handlers.DimensionHandler,
+	OrganizationHandler *handlers.OrganizationHandler,
 ) (*container.AppContainer, error) {
 	App := fiber.New(
 		fiber.Config{
@@ -29,6 +30,7 @@ func NewFiberApp(
 	routes.RegisterTableRoutes(apiV1, TableHandler)
 	routes.RegisterIndicatorRoutes(apiV1, IndicatorHandler)
 	routes.RegisterDimensionRoutes(apiV1, DimensionHandler)
+	routes.RegisterOrganizationRoutes(apiV1, OrganizationHandler)
 
 	return &container.AppContainer{
 		App:    App,

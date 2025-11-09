@@ -44,7 +44,10 @@ func InitializeApp() (*container.AppContainer, error) {
 	indicatorService := services.NewIndicatorService(indicatorRepository)
 	indicatorHandler := handlers.NewIndicatorHandler(indicatorService, validate)
 	dimensionHandler := handlers.NewDimensionHandler(dimensionService, validate)
-	appContainer, err := app.NewFiberApp(appConfig, tableHandler, indicatorHandler, dimensionHandler)
+	organizationRepository := repositories.NewOrganizationRepository(db)
+	organizationService := services.NewOrganizationService(organizationRepository, tableService)
+	organizationHandler := handlers.NewOrganizationHandler(organizationService, validate)
+	appContainer, err := app.NewFiberApp(appConfig, tableHandler, indicatorHandler, dimensionHandler, organizationHandler)
 	if err != nil {
 		return nil, err
 	}

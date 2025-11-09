@@ -155,15 +155,17 @@ func (s *TableService) Create(input *dto.CreateTableRequest) (*dto.TableListResp
 	return result, nil
 }
 
-func (s *TableService) Update(id string, input *dto.UpdateTableRequest) error {
+func (s *TableService) UpdateWithRelations(id string, input *dto.UpdateTableRequest) error {
 	table, err := s.tableRepo.FindBaseByID(id)
 	if err != nil {
 		return err
 	}
 
-	// Apply perubahan dasar
 	mappers.ApplyTableUpdateFromRequest(table, input)
 
-	// Lanjut ke repository
 	return s.tableRepo.UpdateWithRelations(table, input.DimensionIDs)
+}
+
+func (s *TableService) AssignOrganizationBulk(organizationID string, tableIDs []string) error {
+	return s.tableRepo.UpdateOrganizationBulk(organizationID, tableIDs)
 }
