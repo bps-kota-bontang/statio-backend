@@ -25,5 +25,6 @@ type TableRepository interface {
 	Update(table *models.Table) error
 	UpdateOrganizationBulk(organizationID string, tableIDs []string) error
 	AddLabelsBulk(labels []string, tableIDs []string) error
+	UpdateLabels(tableID string, labels []string) error
 	FindAllLabels() ([]*string, error)
 }

@@ -11,6 +11,14 @@ type TableRepositoryImpl struct {
 	db *gorm.DB
 }
 
+// UpdateLabels implements TableRepository.
+func (r *TableRepositoryImpl) UpdateLabels(tableID string, labels []string) error {
+	return r.db.Model(&models.Table{}).
+		Where("id = ?", tableID).
+		Update("labels", pq.Array(labels)).
+		Error
+}
+
 // FindAllLabels implements TableRepository.
 func (r *TableRepositoryImpl) FindAllLabels() ([]*string, error) {
 	var labels []*string
@@ -156,9 +164,9 @@ func (j *TableRepositoryImpl) Count(search string, filters map[string][]string, 
 				}
 			}
 			if hasNull && len(realValues) > 0 {
-				query = query.Where("?::text[] && labels OR labels IS NULL OR array_length(labels, 1) = 0", pq.Array(realValues))
+				query = query.Where("?::text[] && labels OR labels IS NULL OR labels = '{}'::text[]", pq.Array(realValues))
 			} else if hasNull {
-				query = query.Where("labels IS NULL OR array_length(labels, 1) = 0")
+				query = query.Where("labels IS NULL OR labels = '{}'::text[]")
 			} else {
 				query = query.Where("?::text[] && labels", pq.Array(realValues))
 			}
@@ -301,9 +309,9 @@ func (j *TableRepositoryImpl) FindPaginated(search string, limit int, offset int
 				}
 			}
 			if hasNull && len(realValues) > 0 {
-				query = query.Where("?::text[] && labels OR labels IS NULL OR array_length(labels, 1) = 0", pq.Array(realValues))
+				query = query.Where("?::text[] && labels OR labels IS NULL OR labels = '{}'::text[]", pq.Array(realValues))
 			} else if hasNull {
-				query = query.Where("labels IS NULL OR array_length(labels, 1) = 0")
+				query = query.Where("labels IS NULL OR labels = '{}'::text[]")
 			} else {
 				query = query.Where("?::text[] && labels", pq.Array(realValues))
 			}

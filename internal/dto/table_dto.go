@@ -43,3 +43,7 @@ type AddLabelsToTablesRequest struct {
 type TableLabelResponse struct {
 	Name string `json:"name"`
 }
+
+type UpdateTableLabelsRequest struct {
+	Labels []string `json:"labels" validate:"required,min=0,dive,required"`
+}

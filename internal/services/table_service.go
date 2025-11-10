@@ -189,3 +189,10 @@ func (s *TableService) GetAllLabels() ([]*dto.TableLabelResponse, error) {
 
 	return responses, nil
 }
+
+func (s *TableService) UpdateTableLabels(
+	tableID string,
+	input *dto.UpdateTableLabelsRequest,
+) error {
+	return s.tableRepo.UpdateLabels(tableID, input.Labels)
+}

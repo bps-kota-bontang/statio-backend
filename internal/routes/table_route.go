@@ -15,5 +15,6 @@ func RegisterTableRoutes(router fiber.Router, handler *handlers.TableHandler) {
 	table.Get("/:id", handler.GetTable)
 	table.Put("/:id", handler.UpdateTable)
 	table.Put("/:id/facts", handler.UpdateFacts)
+	table.Put("/:id/labels", handler.UpdateLabels)
 	table.Patch("/labels", handler.AddLabelsToTables)
 }
