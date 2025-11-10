@@ -29,7 +29,7 @@ func NewFiberApp(
 	isProd := AppConfig.AppEnv == "production"
 
 	corsConfig := cors.Config{
-		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
 		AllowHeaders:     "Origin, Content-Type, Authorization, X-Refresh-Attempt",
 		AllowCredentials: true,
 	}
