@@ -13,4 +13,5 @@ var AppSet = wire.NewSet(
 	RepositorySet,
 	ServiceSet,
 	HandlerSet,
+	MiddlewareSet,
 )

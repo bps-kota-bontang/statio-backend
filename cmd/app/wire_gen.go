@@ -11,6 +11,7 @@ import (
 	"statio/config"
 	"statio/container"
 	"statio/internal/handlers"
+	"statio/internal/middlewares"
 	"statio/internal/providers"
 	"statio/internal/repositories"
 	"statio/internal/services"
@@ -24,6 +25,8 @@ func InitializeApp() (*container.AppContainer, error) {
 	if err != nil {
 		return nil, err
 	}
+	jwtService := providers.NewJWTProvider(appConfig)
+	jwtMiddleware := middlewares.NewJWTMiddleware(jwtService)
 	databaseConfig, err := config.LoadDatabaseConfig()
 	if err != nil {
 		return nil, err
@@ -32,13 +35,17 @@ func InitializeApp() (*container.AppContainer, error) {
 	if err != nil {
 		return nil, err
 	}
+	userRepository := repositories.NewUserRepository(db)
+	userService := services.NewUserService(userRepository)
+	authService := services.NewAuthService(userService, jwtService)
+	validate := providers.NewValidator()
+	authHandler := handlers.NewAuthHandler(appConfig, authService, validate)
 	tableRepository := repositories.NewTableRepository(db)
 	factRepository := repositories.NewFactRepository(db)
 	factService := services.NewFactService(factRepository, db)
 	dimensionRepository := repositories.NewDimensionRepository(db)
 	dimensionService := services.NewDimensionService(dimensionRepository)
 	tableService := services.NewTableService(tableRepository, factService, dimensionService, db)
-	validate := providers.NewValidator()
 	tableHandler := handlers.NewTableHandler(tableService, validate)
 	indicatorRepository := repositories.NewIndicatorRepository(db)
 	indicatorService := services.NewIndicatorService(indicatorRepository)
@@ -47,7 +54,7 @@ func InitializeApp() (*container.AppContainer, error) {
 	organizationRepository := repositories.NewOrganizationRepository(db)
 	organizationService := services.NewOrganizationService(organizationRepository, tableService)
 	organizationHandler := handlers.NewOrganizationHandler(organizationService, validate)
-	appContainer, err := app.NewFiberApp(appConfig, tableHandler, indicatorHandler, dimensionHandler, organizationHandler)
+	appContainer, err := app.NewFiberApp(appConfig, jwtMiddleware, authHandler, tableHandler, indicatorHandler, dimensionHandler, organizationHandler)
 	if err != nil {
 		return nil, err
 	}

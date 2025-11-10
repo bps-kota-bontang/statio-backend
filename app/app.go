@@ -4,6 +4,7 @@ import (
 	"statio/config"
 	"statio/container"
 	"statio/internal/handlers"
+	"statio/internal/middlewares"
 	"statio/internal/routes"
 
 	"github.com/gofiber/fiber/v2"
@@ -12,6 +13,8 @@ import (
 
 func NewFiberApp(
 	AppConfig *config.AppConfig,
+	JWTMiddleware *middlewares.JWTMiddleware,
+	AuthHandler *handlers.AuthHandler,
 	TableHandler *handlers.TableHandler,
 	IndicatorHandler *handlers.IndicatorHandler,
 	DimensionHandler *handlers.DimensionHandler,
@@ -23,14 +26,34 @@ func NewFiberApp(
 		},
 	)
 
-	App.Use(cors.New())
+	isProd := AppConfig.AppEnv == "production"
+
+	corsConfig := cors.Config{
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders:     "Origin, Content-Type, Authorization, X-Refresh-Attempt",
+		AllowCredentials: true,
+	}
+
+	if isProd {
+		corsConfig.AllowOrigins = "https://statio.bpsbontang.com"
+	} else {
+		corsConfig.AllowOrigins = "http://localhost:5173"
+	}
+
+	App.Use(cors.New(corsConfig))
+
 	api := App.Group("/api")
 	apiV1 := api.Group("/v1")
 
-	routes.RegisterTableRoutes(apiV1, TableHandler)
-	routes.RegisterIndicatorRoutes(apiV1, IndicatorHandler)
-	routes.RegisterDimensionRoutes(apiV1, DimensionHandler)
-	routes.RegisterOrganizationRoutes(apiV1, OrganizationHandler)
+	// Public
+	routes.RegisterAuthRoutes(apiV1, AuthHandler)
+
+	// Protected
+	protected := apiV1.Group("/", JWTMiddleware.Protected())
+	routes.RegisterTableRoutes(protected, TableHandler)
+	routes.RegisterIndicatorRoutes(protected, IndicatorHandler)
+	routes.RegisterDimensionRoutes(protected, DimensionHandler)
+	routes.RegisterOrganizationRoutes(protected, OrganizationHandler)
 
 	return &container.AppContainer{
 		App:    App,

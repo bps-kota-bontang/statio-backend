@@ -11,4 +11,5 @@ var ProviderSet = wire.NewSet(
 	providers.NewValidator,
 	providers.NewRedisClient,
 	providers.NewDBConnection,
+	providers.NewJWTProvider,
 )
