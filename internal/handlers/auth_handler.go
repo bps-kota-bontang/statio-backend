@@ -96,3 +96,29 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 		"message": "Access token refreshed successfully",
 	})
 }
+
+func (h *AuthHandler) Logout(c *fiber.Ctx) error {
+	isProd := h.appConfig.AppEnv == "production"
+
+	// Buat cookie baru dengan nilai kosong dan expired
+	cookie := &fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		HTTPOnly: true,
+		Secure:   isProd,
+		SameSite: "None",
+		MaxAge:   -1, // Expire immediately
+	}
+
+	if isProd {
+		cookie.Domain = ".bpsbontang.com"
+	}
+
+	c.Cookie(cookie)
+
+	return c.JSON(fiber.Map{
+		"data":    nil,
+		"message": "Logout successful",
+	})
+}

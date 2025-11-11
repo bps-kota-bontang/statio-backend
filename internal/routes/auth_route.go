@@ -11,4 +11,5 @@ func RegisterAuthRoutes(router fiber.Router, handler *handlers.AuthHandler) {
 	auth := router.Group("/auth")
 	auth.Post("/login", handler.Login)
 	auth.Post("/refresh", handler.RefreshToken)
+	auth.Post("/logout", handler.Logout)
 }
