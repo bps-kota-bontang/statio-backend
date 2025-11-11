@@ -6,9 +6,11 @@ import (
 	"time"
 )
 
-func NewJWTProvider(cfg *config.AppConfig) *services.JWTService {
+func NewJWTProvider(
+	cfg *config.AuthConfig,
+) *services.JWTService {
 	return services.NewJWTService(
-		cfg.AppJWTSecret,
+		cfg.AuthJWTSecret,
 		15*time.Minute,
 		7*24*time.Hour,
 	)

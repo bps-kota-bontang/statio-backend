@@ -11,19 +11,21 @@ import (
 type AuthService struct {
 	userService *UserService
 	jwtService  *JWTService
+	bpsService  *BPSService
 }
 
-func NewAuthService(userService *UserService, jwtService *JWTService) *AuthService {
+func NewAuthService(userService *UserService, jwtService *JWTService, bpsService *BPSService) *AuthService {
 	return &AuthService{
 		userService: userService,
 		jwtService:  jwtService,
+		bpsService:  bpsService,
 	}
 }
 
 func (s *AuthService) Login(payload *dto.LoginRequest) (*dto.LoginResponse, error) {
 	user, err := s.userService.GetUserByEmail(payload.Email)
 	if err != nil {
-		return nil, fmt.Errorf("invalid credentials")
+		return nil, fmt.Errorf("user not found")
 	}
 
 	// ✅ bandingkan hashed password
@@ -40,9 +42,6 @@ func (s *AuthService) Login(payload *dto.LoginRequest) (*dto.LoginResponse, erro
 	if err != nil {
 		return nil, err
 	}
-
-	// opsional: simpan refresh token ke DB
-	// s.userService.SaveRefreshToken(user.ID, refreshToken)
 
 	return &dto.LoginResponse{
 		AccessToken:  accessToken,
@@ -63,4 +62,32 @@ func (s *AuthService) Refresh(refreshToken string) (string, error) {
 	}
 
 	return s.jwtService.GenerateAccessToken(u.ID, u.Roles)
+}
+
+func (s *AuthService) LoginBPS(token string) (*dto.LoginResponse, error) {
+	userInfo, err := s.bpsService.GetUserInfo(token)
+	if err != nil {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	user, err := s.userService.GetUserByEmail(userInfo.Email)
+	if err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	// ✅ generate tokens
+	accessToken, err := s.jwtService.GenerateAccessToken(user.ID, user.Roles)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken, err := s.jwtService.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }

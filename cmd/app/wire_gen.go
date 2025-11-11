@@ -25,7 +25,11 @@ func InitializeApp() (*container.AppContainer, error) {
 	if err != nil {
 		return nil, err
 	}
-	jwtService := providers.NewJWTProvider(appConfig)
+	authConfig, err := config.LoadAuthConfig()
+	if err != nil {
+		return nil, err
+	}
+	jwtService := providers.NewJWTProvider(authConfig)
 	jwtMiddleware := middlewares.NewJWTMiddleware(jwtService)
 	databaseConfig, err := config.LoadDatabaseConfig()
 	if err != nil {
@@ -37,9 +41,10 @@ func InitializeApp() (*container.AppContainer, error) {
 	}
 	userRepository := repositories.NewUserRepository(db)
 	userService := services.NewUserService(userRepository)
-	authService := services.NewAuthService(userService, jwtService)
+	bpsService := services.NewBPSService()
+	authService := services.NewAuthService(userService, jwtService, bpsService)
 	validate := providers.NewValidator()
-	authHandler := handlers.NewAuthHandler(appConfig, authService, validate)
+	authHandler := handlers.NewAuthHandler(appConfig, authConfig, authService, validate)
 	tableRepository := repositories.NewTableRepository(db)
 	factRepository := repositories.NewFactRepository(db)
 	factService := services.NewFactService(factRepository, db)

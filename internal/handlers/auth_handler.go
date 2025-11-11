@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"statio/config"
 	"statio/internal/dto"
 	"statio/internal/services"
@@ -10,16 +13,18 @@ import (
 )
 
 type AuthHandler struct {
-	appConfig *config.AppConfig
-	service   *services.AuthService
-	validate  *validator.Validate
+	appConfig  *config.AppConfig
+	authConfig *config.AuthConfig
+	service    *services.AuthService
+	validate   *validator.Validate
 }
 
-func NewAuthHandler(appConfig *config.AppConfig, service *services.AuthService, validate *validator.Validate) *AuthHandler {
+func NewAuthHandler(appConfig *config.AppConfig, authConfig *config.AuthConfig, service *services.AuthService, validate *validator.Validate) *AuthHandler {
 	return &AuthHandler{
-		appConfig: appConfig,
-		service:   service,
-		validate:  validate,
+		appConfig:  appConfig,
+		authConfig: authConfig,
+		service:    service,
+		validate:   validate,
 	}
 }
 
@@ -43,7 +48,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(401).JSON(fiber.Map{
 			"data":    nil,
-			"message": "Invalid credentials",
+			"message": err.Error(),
 		})
 	}
 
@@ -63,7 +68,6 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		cookie.Domain = ".bpsbontang.com"
 	}
 
-	// ✅ Set refresh token ke cookie HttpOnly
 	c.Cookie(cookie)
 
 	// kirim access token saja ke frontend
@@ -120,5 +124,100 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"data":    nil,
 		"message": "Logout successful",
+	})
+}
+
+func generateState() string {
+	bytes := make([]byte, 16)
+	if _, err := rand.Read(bytes); err != nil {
+		return ""
+	}
+	return hex.EncodeToString(bytes)
+}
+
+func (h *AuthHandler) RedirectSSO(c *fiber.Ctx) error {
+	isProd := h.appConfig.AppEnv == "production"
+
+	state := generateState()
+
+	cookie := &fiber.Cookie{
+		Name:     "state",
+		Value:    state,
+		Path:     "/",
+		HTTPOnly: true,
+		Secure:   isProd,
+		SameSite: "None",
+		MaxAge:   7 * 24 * 60 * 60,
+	}
+
+	if isProd {
+		cookie.Domain = ".bpsbontang.com"
+	}
+
+	c.Cookie(cookie)
+
+	redirectURL := fmt.Sprintf(
+		"%s/api/v1/auth/sso?state=%s&service_id=%s",
+		h.authConfig.AuthGateURL,
+		state,
+		h.authConfig.AuthGateID,
+	)
+
+	return c.Redirect(redirectURL)
+}
+
+func (h *AuthHandler) LoginSSO(c *fiber.Ctx) error {
+	cookieState := c.Cookies("state")
+	var payload dto.LoginSSORequest
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid request body",
+		})
+	}
+
+	if err := h.validate.Struct(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	if payload.State == "" || payload.Token == "" || payload.State != cookieState {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid state or token",
+		})
+	}
+
+	tokens, err := h.service.LoginBPS(payload.Token)
+	if err != nil {
+		return c.Status(401).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	isProd := h.appConfig.AppEnv == "production"
+
+	cookie := &fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    tokens.RefreshToken,
+		Path:     "/",
+		HTTPOnly: true,
+		Secure:   isProd,
+		SameSite: "None",
+		MaxAge:   7 * 24 * 60 * 60,
+	}
+
+	if isProd {
+		cookie.Domain = ".bpsbontang.com"
+	}
+
+	c.Cookie(cookie)
+
+	return c.JSON(fiber.Map{
+		"data":    fiber.Map{"access_token": tokens.AccessToken},
+		"message": "Login successful",
 	})
 }
