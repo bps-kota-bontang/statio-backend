@@ -46,7 +46,7 @@ func NewFiberApp(
 	apiV1 := api.Group("/v1")
 
 	// Public
-	routes.RegisterAuthRoutes(apiV1, AuthHandler)
+	routes.RegisterAuthRoutes(apiV1, AuthHandler, JWTMiddleware)
 
 	// Protected
 	protected := apiV1.Group("/", JWTMiddleware.Protected())
