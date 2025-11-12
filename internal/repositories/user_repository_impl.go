@@ -22,7 +22,7 @@ func (u *UserRepositoryImpl) FindByEmail(email string) (*models.User, error) {
 // FindByID implements UserRepository.
 func (u *UserRepositoryImpl) FindByID(id string) (*models.User, error) {
 	var user *models.User
-	if err := u.db.Where("id = ?", id).First(&user).Error; err != nil {
+	if err := u.db.Omit("password").Where("id = ?", id).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return user, nil

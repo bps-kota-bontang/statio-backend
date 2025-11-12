@@ -19,7 +19,6 @@ func NewIndicatorHandler(service *services.IndicatorService, validate *validator
 	return &IndicatorHandler{service: service, validate: validate}
 }
 
-// Handler
 func (h *IndicatorHandler) GetAllIndicators(c *fiber.Ctx) error {
 	sortBy := c.Query("sort_by", "no")
 	sortOrder := c.Query("sort_order", "asc")
@@ -81,6 +80,15 @@ func (h *IndicatorHandler) GetIndicator(c *fiber.Ctx) error {
 }
 
 func (h *IndicatorHandler) CreateIndicator(c *fiber.Ctx) error {
+	roles := c.Locals("roles").([]string)
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to create organizations",
+		})
+	}
+
 	var payload dto.CreateIndicatorRequest
 	if err := c.BodyParser(&payload); err != nil {
 		return c.Status(400).JSON(fiber.Map{
@@ -109,8 +117,18 @@ func (h *IndicatorHandler) CreateIndicator(c *fiber.Ctx) error {
 		"message": "Indicator created successfully",
 	})
 }
+
 func (h *IndicatorHandler) UpdateIndicator(c *fiber.Ctx) error {
 	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to create organizations",
+		})
+	}
+
 	var payload dto.UpdateIndicatorRequest
 	if err := c.BodyParser(&payload); err != nil {
 		return c.Status(400).JSON(fiber.Map{

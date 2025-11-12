@@ -19,7 +19,6 @@ func NewDimensionHandler(service *services.DimensionService, validate *validator
 	return &DimensionHandler{service: service, validate: validate}
 }
 
-// Handler
 func (h *DimensionHandler) GetAllDimensions(c *fiber.Ctx) error {
 	sortBy := c.Query("sort_by", "no")
 	sortOrder := c.Query("sort_order", "asc")
@@ -81,6 +80,15 @@ func (h *DimensionHandler) GetDimension(c *fiber.Ctx) error {
 }
 
 func (h *DimensionHandler) CreateDimension(c *fiber.Ctx) error {
+	roles := c.Locals("roles").([]string)
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to create organizations",
+		})
+	}
+
 	var payload dto.CreateDimensionRequest
 	if err := c.BodyParser(&payload); err != nil {
 		return c.Status(400).JSON(fiber.Map{
@@ -109,7 +117,17 @@ func (h *DimensionHandler) CreateDimension(c *fiber.Ctx) error {
 		"message": "Dimension created successfully",
 	})
 }
+
 func (h *DimensionHandler) UpdateDimension(c *fiber.Ctx) error {
+	roles := c.Locals("roles").([]string)
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to create organizations",
+		})
+	}
+
 	id := c.Params("id")
 	var payload dto.UpdateDimensionRequest
 	if err := c.BodyParser(&payload); err != nil {

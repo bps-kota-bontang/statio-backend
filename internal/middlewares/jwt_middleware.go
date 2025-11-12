@@ -18,7 +18,7 @@ func NewJWTMiddleware(jwtService *services.JWTService) *JWTMiddleware {
 func (m *JWTMiddleware) Protected() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		token := strings.TrimPrefix(c.Get("Authorization"), "Bearer ")
-		userID, roles, err := m.jwtService.ValidateAccessToken(token)
+		userID, roles, organizationID, err := m.jwtService.ValidateAccessToken(token)
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(
 				fiber.Map{
@@ -30,6 +30,7 @@ func (m *JWTMiddleware) Protected() fiber.Handler {
 
 		c.Locals("user_id", userID)
 		c.Locals("roles", roles)
+		c.Locals("organization_id", organizationID)
 		return c.Next()
 	}
 }

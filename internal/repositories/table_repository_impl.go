@@ -11,6 +11,17 @@ type TableRepositoryImpl struct {
 	db *gorm.DB
 }
 
+// FindByIDs implements TableRepository.
+func (r *TableRepositoryImpl) FindByIDs(tableIDs []string) ([]*models.Table, error) {
+	var tables []*models.Table
+	if err := r.db.Preload("Indicator").Preload("Dimensions.Dimension").Preload("Organization").
+		Where("id IN ?", tableIDs).
+		Find(&tables).Error; err != nil {
+		return nil, err
+	}
+	return tables, nil
+}
+
 // UpdateLabels implements TableRepository.
 func (r *TableRepositoryImpl) UpdateLabels(tableID string, labels []string) error {
 	return r.db.Model(&models.Table{}).

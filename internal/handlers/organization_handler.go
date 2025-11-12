@@ -3,6 +3,7 @@ package handlers
 import (
 	"statio/internal/dto"
 	"statio/internal/services"
+	"statio/utils"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -17,7 +18,6 @@ func NewOrganizationHandler(service *services.OrganizationService, validate *val
 	return &OrganizationHandler{service: service, validate: validate}
 }
 
-// Handler
 func (h *OrganizationHandler) GetAllOrganizations(c *fiber.Ctx) error {
 	organizations, err := h.service.GetAll()
 	if err != nil {
@@ -33,9 +33,16 @@ func (h *OrganizationHandler) GetAllOrganizations(c *fiber.Ctx) error {
 	})
 }
 
-// CreateOrganizationTable handles the creation of a new table for a specific organization
 func (h *OrganizationHandler) AssignTables(c *fiber.Ctx) error {
 	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to create organizations",
+		})
+	}
 
 	var payload dto.AssignTablesRequest
 	if err := c.BodyParser(&payload); err != nil {
@@ -65,8 +72,16 @@ func (h *OrganizationHandler) AssignTables(c *fiber.Ctx) error {
 	})
 }
 
-// CreateOrganization handles the creation of a new organization
 func (h *OrganizationHandler) CreateOrganization(c *fiber.Ctx) error {
+	roles := c.Locals("roles").([]string)
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to create organizations",
+		})
+	}
+
 	var payload dto.CreateOrganizationRequest
 	if err := c.BodyParser(&payload); err != nil {
 		return c.Status(400).JSON(fiber.Map{
@@ -95,9 +110,16 @@ func (h *OrganizationHandler) CreateOrganization(c *fiber.Ctx) error {
 	})
 }
 
-// UpdateOrganization handles the update of an existing organization
 func (h *OrganizationHandler) UpdateOrganization(c *fiber.Ctx) error {
 	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to create organizations",
+		})
+	}
 
 	var payload dto.UpdateOrganizationRequest
 	if err := c.BodyParser(&payload); err != nil {

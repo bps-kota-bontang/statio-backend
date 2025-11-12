@@ -12,4 +12,5 @@ var HandlerSet = wire.NewSet(
 	handlers.NewDimensionHandler,
 	handlers.NewOrganizationHandler,
 	handlers.NewAuthHandler,
+	handlers.NewUserHandler,
 )

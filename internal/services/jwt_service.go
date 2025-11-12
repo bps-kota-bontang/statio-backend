@@ -14,8 +14,9 @@ type JWTService struct {
 }
 
 type AccessClaims struct {
-	UserID string   `json:"user_id"`
-	Roles  []string `json:"roles"`
+	UserID         string   `json:"user_id"`
+	Roles          []string `json:"roles"`
+	OrganizationID *string  `json:"organization_id"`
 	jwt.RegisteredClaims
 }
 
@@ -27,10 +28,11 @@ func NewJWTService(secret string, accessTTL, refreshTTL time.Duration) *JWTServi
 	}
 }
 
-func (m *JWTService) GenerateAccessToken(userID string, roles []string) (string, error) {
+func (m *JWTService) GenerateAccessToken(userID string, roles []string, organizationID *string) (string, error) {
 	claims := AccessClaims{
-		UserID: userID,
-		Roles:  roles,
+		UserID:         userID,
+		Roles:          roles,
+		OrganizationID: organizationID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(m.AccessTokenTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -67,15 +69,15 @@ func (m *JWTService) ParseToken(tokenString string) (*jwt.Token, jwt.MapClaims, 
 	return token, claims, nil
 }
 
-func (j *JWTService) ValidateAccessToken(tokenString string) (string, []string, error) {
+func (j *JWTService) ValidateAccessToken(tokenString string) (string, []string, *string, error) {
 	_, claims, err := j.ParseToken(tokenString)
 	if err != nil {
-		return "", nil, errors.New("invalid or expired token")
+		return "", nil, nil, errors.New("invalid or expired token")
 	}
 
 	userID, ok := claims["user_id"].(string)
 	if !ok {
-		return "", nil, errors.New("invalid token payload")
+		return "", nil, nil, errors.New("invalid token payload")
 	}
 
 	roles := make([]string, 0)
@@ -87,5 +89,10 @@ func (j *JWTService) ValidateAccessToken(tokenString string) (string, []string, 
 		}
 	}
 
-	return userID, roles, nil
+	var organizationID *string
+	if orgID, ok := claims["organization_id"].(string); ok {
+		organizationID = &orgID
+	}
+
+	return userID, roles, organizationID, nil
 }

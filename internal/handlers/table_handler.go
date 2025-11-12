@@ -28,6 +28,8 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 	search := c.Query("search")
 	page := c.QueryInt("page", 1)
 	perPage := c.QueryInt("per_page", 10)
+	roles := c.Locals("roles").([]string)
+	organizationID := c.Locals("organization_id").(*string)
 
 	// Ambil filters per kolom, bisa multiple
 	filters := map[string][]string{}
@@ -51,6 +53,17 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 		}
 	}
 
+	if !utils.IsAdmin(roles) {
+		if organizationID != nil {
+			filters["organization_id"] = []string{*organizationID}
+		} else {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"data":    nil,
+				"message": "Missing organization context for operator access",
+			})
+		}
+	}
+
 	Dimensions, total, err := h.service.GetAllPaginated(search, page, perPage, sortBy, sortOrder, filters)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
@@ -70,6 +83,8 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 
 func (h *TableHandler) GetTable(c *fiber.Ctx) error {
 	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+	orgID := c.Locals("organization_id").(*string)
 	yearParam := c.QueryInt("year")
 
 	var year *int
@@ -89,6 +104,15 @@ func (h *TableHandler) GetTable(c *fiber.Ctx) error {
 		})
 	}
 
+	if !utils.IsAdmin(roles) {
+		if orgID == nil || table.Organization == nil || table.Organization.ID != *orgID {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"data":    nil,
+				"message": "You are not authorized to access this table",
+			})
+		}
+	}
+
 	return c.JSON(fiber.Map{
 		"data":    table,
 		"message": "Table fetched successfully",
@@ -97,6 +121,8 @@ func (h *TableHandler) GetTable(c *fiber.Ctx) error {
 
 func (h *TableHandler) UpdateFacts(c *fiber.Ctx) error {
 	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+	orgID := c.Locals("organization_id").(*string)
 
 	var payload dto.UpdateFactRequest
 	if err := c.BodyParser(&payload); err != nil {
@@ -113,7 +139,7 @@ func (h *TableHandler) UpdateFacts(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := h.service.UpdateTableFacts(id, &payload); err != nil {
+	if err := h.service.UpdateTableFacts(id, &payload, roles, orgID); err != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"data":    nil,
 			"message": err.Error(),
@@ -128,6 +154,15 @@ func (h *TableHandler) UpdateFacts(c *fiber.Ctx) error {
 
 func (h *TableHandler) CreateTable(c *fiber.Ctx) error {
 	var payload dto.CreateTableRequest
+	roles := c.Locals("roles").([]string)
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to create tables",
+		})
+	}
+
 	if err := c.BodyParser(&payload); err != nil {
 		return c.Status(400).JSON(fiber.Map{
 			"data":    nil,
@@ -158,6 +193,15 @@ func (h *TableHandler) CreateTable(c *fiber.Ctx) error {
 
 func (h *TableHandler) UpdateTable(c *fiber.Ctx) error {
 	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to create tables",
+		})
+	}
+
 	var payload dto.UpdateTableRequest
 	if err := c.BodyParser(&payload); err != nil {
 		return c.Status(400).JSON(fiber.Map{
@@ -206,6 +250,9 @@ func (h *TableHandler) GetTableLabels(c *fiber.Ctx) error {
 }
 
 func (h *TableHandler) AddLabelsToTables(c *fiber.Ctx) error {
+	roles := c.Locals("roles").([]string)
+	orgID := c.Locals("organization_id").(*string)
+
 	var payload dto.AddLabelsToTablesRequest
 	if err := c.BodyParser(&payload); err != nil {
 		return c.Status(400).JSON(fiber.Map{
@@ -221,7 +268,7 @@ func (h *TableHandler) AddLabelsToTables(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := h.service.AddLabelsBulk(&payload); err != nil {
+	if err := h.service.AddLabelsBulk(&payload, roles, orgID); err != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"data":    nil,
 			"message": err.Error(),
@@ -235,6 +282,9 @@ func (h *TableHandler) AddLabelsToTables(c *fiber.Ctx) error {
 }
 
 func (h *TableHandler) UpdateLabels(c *fiber.Ctx) error {
+	roles := c.Locals("roles").([]string)
+	orgID := c.Locals("organization_id").(*string)
+
 	id := c.Params("id")
 
 	var payload dto.UpdateTableLabelsRequest
@@ -252,7 +302,7 @@ func (h *TableHandler) UpdateLabels(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := h.service.UpdateTableLabels(id, &payload); err != nil {
+	if err := h.service.UpdateTableLabels(id, &payload, roles, orgID); err != nil {
 		status := 500
 		if err == gorm.ErrRecordNotFound {
 			status = 404

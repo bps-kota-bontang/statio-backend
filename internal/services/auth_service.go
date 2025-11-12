@@ -34,7 +34,7 @@ func (s *AuthService) Login(payload *dto.LoginRequest) (*dto.LoginResponse, erro
 	}
 
 	// ✅ generate tokens
-	accessToken, err := s.jwtService.GenerateAccessToken(user.ID, user.Roles)
+	accessToken, err := s.jwtService.GenerateAccessToken(user.ID, user.Roles, user.OrganizationID)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (s *AuthService) Refresh(refreshToken string) (string, error) {
 		return "", errors.New("user not found")
 	}
 
-	return s.jwtService.GenerateAccessToken(u.ID, u.Roles)
+	return s.jwtService.GenerateAccessToken(u.ID, u.Roles, u.OrganizationID)
 }
 
 func (s *AuthService) LoginBPS(token string) (*dto.LoginResponse, error) {
@@ -76,7 +76,7 @@ func (s *AuthService) LoginBPS(token string) (*dto.LoginResponse, error) {
 	}
 
 	// ✅ generate tokens
-	accessToken, err := s.jwtService.GenerateAccessToken(user.ID, user.Roles)
+	accessToken, err := s.jwtService.GenerateAccessToken(user.ID, user.Roles, user.OrganizationID)
 	if err != nil {
 		return nil, err
 	}

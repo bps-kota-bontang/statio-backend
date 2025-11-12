@@ -27,4 +27,5 @@ type TableRepository interface {
 	AddLabelsBulk(labels []string, tableIDs []string) error
 	UpdateLabels(tableID string, labels []string) error
 	FindAllLabels() ([]*string, error)
+	FindByIDs(tableIDs []string) ([]*models.Table, error)
 }

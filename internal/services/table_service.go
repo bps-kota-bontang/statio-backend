@@ -6,6 +6,7 @@ import (
 	"statio/internal/mappers"
 	"statio/internal/models"
 	"statio/internal/repositories"
+	"statio/utils"
 	"time"
 
 	"gorm.io/gorm"
@@ -113,11 +114,18 @@ func (s *TableService) GetByID(id string, year *int) (*dto.TableResponse, error)
 	return response, nil
 }
 
-func (s *TableService) UpdateTableFacts(tableID string, payload *dto.UpdateFactRequest) error {
+func (s *TableService) UpdateTableFacts(tableID string, payload *dto.UpdateFactRequest, roles []string, organizationID *string) error {
 	table, err := s.tableRepo.FindForFactUpdate(tableID)
 	if err != nil || table == nil {
 		return fmt.Errorf("table not found")
 	}
+
+	if !utils.IsAdmin(roles) {
+		if organizationID == nil || table.OrganizationID == nil || *organizationID != *table.OrganizationID {
+			return fmt.Errorf("you are not authorized to update facts for this table")
+		}
+	}
+
 	return s.factSvc.SaveOrUpdateFacts(table, payload)
 }
 
@@ -172,7 +180,22 @@ func (s *TableService) AssignOrganizationBulk(organizationID string, tableIDs []
 
 func (s *TableService) AddLabelsBulk(
 	input *dto.AddLabelsToTablesRequest,
+	roles []string, organizationID *string,
 ) error {
+	if !utils.IsAdmin(roles) {
+		// Cek setiap table apakah boleh diakses
+		tables, err := s.tableRepo.FindByIDs(input.TableIDs)
+		if err != nil {
+			return err
+		}
+
+		for _, table := range tables {
+			if organizationID == nil || table.OrganizationID == nil || *organizationID != *table.OrganizationID {
+				return fmt.Errorf("you are not authorized to add labels to one or more of the specified tables")
+			}
+		}
+	}
+
 	return s.tableRepo.AddLabelsBulk(input.Labels, input.TableIDs)
 }
 
@@ -193,6 +216,19 @@ func (s *TableService) GetAllLabels() ([]*dto.TableLabelResponse, error) {
 func (s *TableService) UpdateTableLabels(
 	tableID string,
 	input *dto.UpdateTableLabelsRequest,
+	roles []string, organizationID *string,
 ) error {
+
+	if !utils.IsAdmin(roles) {
+		table, err := s.tableRepo.FindBaseByID(tableID)
+		if err != nil {
+			return err
+		}
+
+		if organizationID == nil || table.OrganizationID == nil || *organizationID != *table.OrganizationID {
+			return fmt.Errorf("you are not authorized to update labels for this table")
+		}
+	}
+
 	return s.tableRepo.UpdateLabels(tableID, input.Labels)
 }
