@@ -115,3 +115,27 @@ func (f *FactRepositoryImpl) UpdateFactsTx(tx *gorm.DB, facts []*models.Fact) er
 
 	return tx.Exec(query).Error
 }
+
+func (r *FactRepositoryImpl) CountFactsByYear(tableID string, fromYear, toYear int) (map[int]int, error) {
+	type result struct {
+		Year  int
+		Count int
+	}
+
+	rows := []result{}
+	err := r.db.Table("facts").
+		Select("year, COUNT(*) as count").
+		Where("value IS NOT NULL AND table_id = ? AND year BETWEEN ? AND ?", tableID, fromYear, toYear).
+		Group("year").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	counts := make(map[int]int)
+	for _, r := range rows {
+		counts[r.Year] = r.Count
+	}
+
+	return counts, nil
+}

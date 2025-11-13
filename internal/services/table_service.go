@@ -273,3 +273,28 @@ func (s *TableService) UpdateTableNotes(
 
 	return s.tableRepo.Update(table)
 }
+
+func (s *TableService) GetMissingFacts(
+	tableID string,
+	roles []string,
+	organizationID *string,
+	fromYear, toYear int,
+) (*dto.MissingFactsResponse, error) {
+	table, err := s.tableRepo.FindDetailedByID(tableID)
+	if err != nil || table == nil {
+		return nil, fmt.Errorf("table not found")
+	}
+
+	if !utils.IsAdmin(roles) {
+		if organizationID == nil || table.OrganizationID == nil || *organizationID != *table.OrganizationID {
+			return nil, fmt.Errorf("you are not authorized to view missing facts for this table")
+		}
+	}
+
+	responses, err := s.factSvc.GetMissingFactsForTable(table, fromYear, toYear)
+	if err != nil {
+		return nil, err
+	}
+
+	return responses, nil
+}

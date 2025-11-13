@@ -4,6 +4,7 @@ import (
 	"statio/internal/dto"
 	"statio/internal/services"
 	"statio/utils"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -390,5 +391,31 @@ func (h *TableHandler) UpdateTableNotes(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"data":    nil,
 		"message": "Table notes updated successfully",
+	})
+}
+
+func (h *TableHandler) GetMissingFacts(c *fiber.Ctx) error {
+	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+	orgID := c.Locals("organization_id").(*string)
+	currentYear := time.Now().Year()
+	fromYear := c.QueryInt("from_year", currentYear-4)
+	toYear := c.QueryInt("to_year", currentYear)
+
+	missingFacts, err := h.service.GetMissingFacts(id, roles, orgID, fromYear, toYear)
+	if err != nil {
+		status := 500
+		if err == gorm.ErrRecordNotFound {
+			status = 404
+		}
+		return c.Status(status).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    missingFacts,
+		"message": "Missing facts fetched successfully",
 	})
 }

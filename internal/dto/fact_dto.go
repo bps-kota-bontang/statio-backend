@@ -21,3 +21,25 @@ type FactPayload struct {
 type UpdateFactRequest struct {
 	Data []FactPayload `json:"data"`
 }
+
+type SummaryMissingFacts struct {
+	ExpectedPerYear int `json:"expected_per_year"`
+	TotalExpected   int `json:"total_expected"`
+	TotalFilled     int `json:"total_filled"`
+	TotalMissing    int `json:"total_missing"`
+}
+
+type DataMissingFact struct {
+	Year     int `json:"year"`
+	Expected int `json:"expected"`
+	Filled   int `json:"filled"`
+	Missing  int `json:"missing"`
+}
+
+type MissingFactsResponse struct {
+	TableID  string              `json:"table_id"`
+	FromYear int                 `json:"from_year"`
+	ToYear   int                 `json:"to_year"`
+	Summary  SummaryMissingFacts `json:"summary"`
+	Data     []DataMissingFact   `json:"data"`
+}

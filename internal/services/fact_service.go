@@ -156,3 +156,53 @@ func (s *FactService) SaveOrUpdateFacts(table *models.Table, payload *dto.Update
 	fmt.Printf("Total SaveOrUpdateFacts took: %v seconds\n", time.Since(startTotal).Seconds())
 	return tx.Commit().Error
 }
+
+func (s *FactService) GetMissingFactsForTable(table *models.Table, fromYear, toYear int) (*dto.MissingFactsResponse, error) {
+	// Hitung jumlah kombinasi dimensi
+	expectedPerYear := 1
+	for _, td := range table.Dimensions {
+		if td.Dimension != nil {
+			expectedPerYear *= len(td.Dimension.Values)
+		}
+	}
+
+	// Ambil jumlah faktual per tahun dari DB
+	filledCounts, err := s.factRepo.CountFactsByYear(table.ID, fromYear, toYear)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count facts: %w", err)
+	}
+
+	// Bangun response model
+	data := make([]dto.DataMissingFact, 0, toYear-fromYear+1)
+	totalExpected := 0
+	totalFilled := 0
+	totalMissing := 0
+
+	for year := fromYear; year <= toYear; year++ {
+		filled := filledCounts[year]
+		missing := max(expectedPerYear-filled, 0)
+		data = append(data, dto.DataMissingFact{
+			Year:     year,
+			Expected: expectedPerYear,
+			Filled:   filled,
+			Missing:  missing,
+		})
+
+		totalExpected += expectedPerYear
+		totalFilled += filled
+		totalMissing += missing
+	}
+
+	return &dto.MissingFactsResponse{
+		TableID:  table.ID,
+		FromYear: fromYear,
+		ToYear:   toYear,
+		Summary: dto.SummaryMissingFacts{
+			ExpectedPerYear: expectedPerYear,
+			TotalExpected:   totalExpected,
+			TotalFilled:     totalFilled,
+			TotalMissing:    totalMissing,
+		},
+		Data: data,
+	}, nil
+}
