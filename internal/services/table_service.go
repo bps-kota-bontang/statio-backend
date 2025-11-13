@@ -218,7 +218,6 @@ func (s *TableService) UpdateTableLabels(
 	input *dto.UpdateTableLabelsRequest,
 	roles []string, organizationID *string,
 ) error {
-
 	if !utils.IsAdmin(roles) {
 		table, err := s.tableRepo.FindBaseByID(tableID)
 		if err != nil {
@@ -231,4 +230,46 @@ func (s *TableService) UpdateTableLabels(
 	}
 
 	return s.tableRepo.UpdateLabels(tableID, input.Labels)
+}
+
+func (s *TableService) UpdateTableName(
+	tableID string,
+	newName string,
+	roles []string, organizationID *string,
+) error {
+	table, err := s.tableRepo.FindBaseByID(tableID)
+	if err != nil {
+		return err
+	}
+
+	if !utils.IsAdmin(roles) {
+		if organizationID == nil || table.OrganizationID == nil || *organizationID != *table.OrganizationID {
+			return fmt.Errorf("you are not authorized to update the name for this table")
+		}
+	}
+
+	table.Name = newName
+
+	return s.tableRepo.Update(table)
+}
+
+func (s *TableService) UpdateTableNotes(
+	tableID string,
+	newNotes *string,
+	roles []string, organizationID *string,
+) error {
+	table, err := s.tableRepo.FindBaseByID(tableID)
+	if err != nil {
+		return err
+	}
+
+	if !utils.IsAdmin(roles) {
+		if organizationID == nil || table.OrganizationID == nil || *organizationID != *table.OrganizationID {
+			return fmt.Errorf("you are not authorized to update the notes for this table")
+		}
+	}
+
+	table.Notes = newNotes
+
+	return s.tableRepo.Update(table)
 }

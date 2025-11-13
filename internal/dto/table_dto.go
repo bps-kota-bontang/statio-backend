@@ -8,6 +8,7 @@ type TableResponse struct {
 	Indicator    *IndicatorResponse    `json:"indicator"`
 	Organization *OrganizationResponse `json:"organization"`
 	Labels       []string              `json:"labels"`
+	Notes        *string               `json:"notes"`
 	Dimensions   []DimensionResponse   `json:"dimensions"`
 	Facts        []FactResponse        `json:"facts"`
 }
@@ -18,6 +19,7 @@ type TableListResponse struct {
 	Indicator    *IndicatorListResponse `json:"indicator"`
 	Organization *OrganizationResponse  `json:"organization"`
 	Labels       []string               `json:"labels"`
+	Notes        *string                `json:"notes"`
 	Dimensions   []string               `json:"dimensions"`
 }
 
@@ -46,4 +48,12 @@ type TableLabelResponse struct {
 
 type UpdateTableLabelsRequest struct {
 	Labels []string `json:"labels" validate:"required,min=0,dive,required"`
+}
+
+type UpdateTableNameRequest struct {
+	Name string `json:"name" validate:"required"`
+}
+
+type UpdateTableNotesRequest struct {
+	Notes *string `json:"notes" validate:"required"`
 }

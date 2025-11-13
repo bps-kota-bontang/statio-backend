@@ -14,6 +14,7 @@ func ToTableResponse(table *models.Table, year *int) *dto.TableResponse {
 		Direction:   table.Direction,
 		Description: table.Description,
 		Labels:      table.Labels,
+		Notes:       table.Notes,
 		Dimensions:  []dto.DimensionResponse{},
 		Facts:       []dto.FactResponse{},
 	}
@@ -159,6 +160,7 @@ func ToTableListResponse(table *models.Table) *dto.TableListResponse {
 		ID:         table.ID,
 		Name:       table.Name,
 		Labels:     table.Labels,
+		Notes:      table.Notes,
 		Dimensions: extractDimensionNames(table.Dimensions),
 	}
 

@@ -17,6 +17,7 @@ type Table struct {
 	OrganizationID *string          `gorm:"type:uuid;index"`
 	Organization   *Organization    `gorm:"foreignKey:OrganizationID;constraint:OnDelete:CASCADE"`
 	Labels         pq.StringArray   `gorm:"type:text[]"`
+	Notes          *string          `gorm:"type:text"`
 	Dimensions     []TableDimension `gorm:"foreignKey:TableID;constraint:OnDelete:CASCADE"`
 	Facts          []Fact           `gorm:"foreignKey:TableID;constraint:OnDelete:CASCADE"`
 	CreatedAt      time.Time
