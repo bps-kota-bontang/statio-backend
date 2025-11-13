@@ -286,7 +286,7 @@ func (j *TableRepositoryImpl) Count(search string, filters map[string][]string, 
 // FindPaginated implements TableRepository.
 func (j *TableRepositoryImpl) FindPaginated(search string, limit int, offset int, sortBy string, sortOrder string, filters map[string][]string) ([]*models.Table, error) {
 	var tables []*models.Table
-	query := j.db.Preload("Indicator").Preload("Dimensions.Dimension").Preload("Organization").
+	query := j.db.Preload("Indicator").Preload("Dimensions.Dimension.Values").Preload("Organization").
 		Model(&models.Table{}).
 		Joins("LEFT JOIN indicators i ON i.id = tables.indicator_id").
 		Limit(limit).Offset(offset)

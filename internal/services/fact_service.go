@@ -206,3 +206,63 @@ func (s *FactService) GetMissingFactsForTable(table *models.Table, fromYear, toY
 		Data: data,
 	}, nil
 }
+
+func (s *FactService) GetMissingFactsForTables(tables []*models.Table, fromYear, toYear int) (map[string]*dto.MissingFactsResponse, error) {
+	tableIDs := make([]string, len(tables))
+	for i, t := range tables {
+		tableIDs[i] = t.ID
+	}
+
+	filledCounts, err := s.factRepo.CountFactsByYearForTables(tableIDs, fromYear, toYear)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]*dto.MissingFactsResponse, len(tables))
+	for _, table := range tables {
+		// Hitung expected per year
+		expectedPerYear := 1
+		for _, td := range table.Dimensions {
+			if td.Dimension != nil {
+				expectedPerYear *= len(td.Dimension.Values)
+			}
+		}
+
+		data := make([]dto.DataMissingFact, 0, toYear-fromYear+1)
+		totalExpected, totalFilled, totalMissing := 0, 0, 0
+
+		for year := fromYear; year <= toYear; year++ {
+			filled := 0
+			if filledCounts[table.ID] != nil {
+				filled = filledCounts[table.ID][year]
+			}
+			missing := max(expectedPerYear-filled, 0)
+
+			data = append(data, dto.DataMissingFact{
+				Year:     year,
+				Expected: expectedPerYear,
+				Filled:   filled,
+				Missing:  missing,
+			})
+
+			totalExpected += expectedPerYear
+			totalFilled += filled
+			totalMissing += missing
+		}
+
+		result[table.ID] = &dto.MissingFactsResponse{
+			TableID:  table.ID,
+			FromYear: fromYear,
+			ToYear:   toYear,
+			Summary: dto.SummaryMissingFacts{
+				ExpectedPerYear: expectedPerYear,
+				TotalExpected:   totalExpected,
+				TotalFilled:     totalFilled,
+				TotalMissing:    totalMissing,
+			},
+			Data: data,
+		}
+	}
+
+	return result, nil
+}

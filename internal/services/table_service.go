@@ -65,9 +65,20 @@ func (s *TableService) GetAllPaginated(
 		return nil, 0, err
 	}
 
+	// Ambil summary missing facts sekaligus untuk semua table
+	currentYear := time.Now().Year()
+	missingFactsMap, err := s.factSvc.GetMissingFactsForTables(tables, currentYear-4, currentYear-1)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get missing facts: %w", err)
+	}
+
 	responses := make([]*dto.TableListResponse, 0, len(tables))
-	for _, dimension := range tables {
-		responses = append(responses, mappers.ToTableListResponse(dimension))
+	for _, table := range tables {
+		resp := mappers.ToTableListResponse(table)
+		if missingFacts, ok := missingFactsMap[table.ID]; ok {
+			resp.MissingFactsSummary = &missingFacts.Summary
+		}
+		responses = append(responses, resp)
 	}
 
 	return responses, total, nil

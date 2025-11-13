@@ -139,3 +139,32 @@ func (r *FactRepositoryImpl) CountFactsByYear(tableID string, fromYear, toYear i
 
 	return counts, nil
 }
+
+func (r *FactRepositoryImpl) CountFactsByYearForTables(tableIDs []string, fromYear, toYear int) (map[string]map[int]int, error) {
+	type result struct {
+		TableID string
+		Year    int
+		Count   int
+	}
+
+	rows := []result{}
+	err := r.db.Table("facts").
+		Select("table_id, year, COUNT(*) as count").
+		Where("value IS NOT NULL AND table_id IN ? AND year BETWEEN ? AND ?", tableIDs, fromYear, toYear).
+		Group("table_id, year").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Buat map[tableID][year]count
+	counts := make(map[string]map[int]int)
+	for _, r := range rows {
+		if _, ok := counts[r.TableID]; !ok {
+			counts[r.TableID] = make(map[int]int)
+		}
+		counts[r.TableID][r.Year] = r.Count
+	}
+
+	return counts, nil
+}

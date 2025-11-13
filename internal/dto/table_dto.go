@@ -14,13 +14,14 @@ type TableResponse struct {
 }
 
 type TableListResponse struct {
-	ID           string                 `json:"id"`
-	Name         string                 `json:"name"`
-	Indicator    *IndicatorListResponse `json:"indicator"`
-	Organization *OrganizationResponse  `json:"organization"`
-	Labels       []string               `json:"labels"`
-	Notes        *string                `json:"notes"`
-	Dimensions   []string               `json:"dimensions"`
+	ID                  string                 `json:"id"`
+	Name                string                 `json:"name"`
+	Indicator           *IndicatorListResponse `json:"indicator"`
+	Organization        *OrganizationResponse  `json:"organization"`
+	Labels              []string               `json:"labels"`
+	Notes               *string                `json:"notes"`
+	Dimensions          []string               `json:"dimensions"`
+	MissingFactsSummary *SummaryMissingFacts   `json:"missing_facts_summary"`
 }
 
 type CreateTableRequest struct {

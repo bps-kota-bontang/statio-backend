@@ -14,4 +14,5 @@ type FactRepository interface {
 	UpdateFactsTx(tx *gorm.DB, facts []*models.Fact) error
 	CreateFactDimensionValuesTx(tx *gorm.DB, fdvs []models.FactDimensionValue) error
 	CountFactsByYear(tableID string, fromYear, toYear int) (map[int]int, error)
+	CountFactsByYearForTables(tableIDs []string, fromYear, toYear int) (map[string]map[int]int, error)
 }
