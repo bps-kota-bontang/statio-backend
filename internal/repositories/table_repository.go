@@ -8,6 +8,9 @@ import (
 
 type TableRepository interface {
 	Count(search string, filters map[string][]string, total *int64) error
+	FindLight(search string, sortBy string, sortOrder string, filters map[string][]string) ([]*models.Table, error)
+	LoadDimensionsForTableIDs(ids []string) ([]*models.Table, error)
+	FindByIDsDetailed(ids []string) ([]*models.Table, error)
 	FindAll() ([]*models.Table, error)
 	FindPaginated(
 		search string,

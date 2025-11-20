@@ -445,6 +445,205 @@ func (j *TableRepositoryImpl) FindPaginated(search string, limit int, offset int
 	return tables, nil
 }
 
+// FindLight implements TableRepository.
+func (j *TableRepositoryImpl) FindLight(search string, sortBy string, sortOrder string, filters map[string][]string) ([]*models.Table, error) {
+	var results []*models.Table
+
+	query := j.db.Model(&models.Table{}).
+		Joins("LEFT JOIN indicators i ON i.id = tables.indicator_id")
+
+	// apply same lightweight search & filters as your Count (reuse logic)
+	if search != "" {
+		like := "%" + search + "%"
+		query = query.Where(
+			j.db.Where("tables.name ILIKE ?", like).
+				Or("i.name ILIKE ?", like).
+				Or("i.measure ILIKE ?", like).
+				Or("i.unit ILIKE ?", like),
+		)
+	}
+
+	// apply filters except heavy ones? We'll reuse your same switch but keep it as-is
+	for col, values := range filters {
+		if len(values) == 0 {
+			continue
+		}
+		switch col {
+		case "indicator_name":
+			// same logic as Count
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+			if hasNull && len(realValues) > 0 {
+				query = query.Where("i.name IN ? OR i.name IS NULL OR i.name = ''", realValues)
+			} else if hasNull {
+				query = query.Where("i.name IS NULL OR i.name = ''")
+			} else {
+				query = query.Where("i.name IN ?", realValues)
+			}
+		case "indicator_measure":
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+			if hasNull && len(realValues) > 0 {
+				query = query.Where("i.measure IN ? OR i.measure IS NULL OR i.measure = ''", realValues)
+			} else if hasNull {
+				query = query.Where("i.measure IS NULL OR i.measure = ''")
+			} else {
+				query = query.Where("i.measure IN ?", realValues)
+			}
+		case "indicator_unit":
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+			if hasNull && len(realValues) > 0 {
+				query = query.Where("i.unit IN ? OR i.unit IS NULL OR i.unit = ''", realValues)
+			} else if hasNull {
+				query = query.Where("i.unit IS NULL OR i.unit = ''")
+			} else {
+				query = query.Where("i.unit IN ?", realValues)
+			}
+		case "organization_id":
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+			if hasNull && len(realValues) > 0 {
+				query = query.Where("tables.organization_id IN ? OR tables.organization_id IS NULL", realValues)
+			} else if hasNull {
+				query = query.Where("tables.organization_id IS NULL")
+			} else {
+				query = query.Where("tables.organization_id IN ?", realValues)
+			}
+		case "labels":
+			// labels is not super heavy, keep it
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+			if hasNull && len(realValues) > 0 {
+				query = query.Where("?::text[] && labels OR labels IS NULL OR labels = '{}'::text[]", pq.Array(realValues))
+			} else if hasNull {
+				query = query.Where("labels IS NULL OR labels = '{}'::text[]")
+			} else {
+				query = query.Where("?::text[] && labels", pq.Array(realValues))
+			}
+		case "dimensions":
+			// dimensions filter uses subquery (not loading dimension values), ok to keep
+			subQuery := j.db.Table("table_dimensions td").
+				Select("td.table_id").
+				Joins("JOIN dimensions d ON d.id = td.dimension_id").
+				Where("td.deleted_at IS NULL")
+
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+
+			if hasNull && len(realValues) > 0 {
+				subQuery = subQuery.Where("d.name IN ?", realValues)
+				query = query.Where("tables.id IN (?) OR NOT EXISTS (SELECT 1 FROM table_dimensions td2 WHERE td2.table_id = tables.id)", subQuery)
+			} else if hasNull {
+				query = query.Where("NOT EXISTS (SELECT 1 FROM table_dimensions td WHERE td.table_id = tables.id)")
+			} else {
+				subQuery = subQuery.Where("d.name IN ?", realValues)
+				query = query.Where("tables.id IN (?)", subQuery)
+			}
+			// ignore missing_facts here (we handle in service)
+		}
+	}
+
+	// ordering - reuse existing mapping
+	validSortFields := map[string]string{
+		"no":   "tables.created_at",
+		"name": "tables.name",
+	}
+	field, ok := validSortFields[sortBy]
+	if !ok {
+		field = "tables.created_at"
+	}
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "asc"
+	}
+	query = query.Order(field + " " + sortOrder)
+
+	// select minimal columns
+	if err := query.Select("tables.id, tables.name, tables.indicator_id").Find(&results).Error; err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+// LoadDimensionsForTableIDs implements TableRepository.
+func (j *TableRepositoryImpl) LoadDimensionsForTableIDs(ids []string) ([]*models.Table, error) {
+	if len(ids) == 0 {
+		return []*models.Table{}, nil
+	}
+	var tables []*models.Table
+	err := j.db.Model(&models.Table{}).
+		Where("id IN ?", ids).
+		// Preload("Dimensions").
+		// Preload("Dimensions.Dimension").
+		Preload("Dimensions.Dimension.Values").
+		Find(&tables).Error
+	if err != nil {
+		return nil, err
+	}
+	return tables, nil
+}
+
+// FindByIDsDetailed implements TableRepository.
+func (j *TableRepositoryImpl) FindByIDsDetailed(ids []string) ([]*models.Table, error) {
+	if len(ids) == 0 {
+		return []*models.Table{}, nil
+	}
+	var tables []*models.Table
+	err := j.db.
+		Preload("Indicator").
+		Preload("Dimensions.Dimension.Values").
+		//Preload("Facts"). // adjust if you need specific fact preloads
+		Preload("Organization").
+		Where("id IN ?", ids).
+		Find(&tables).Error
+	if err != nil {
+		return nil, err
+	}
+	return tables, nil
+}
+
 // FindAll implements TableRepository.
 func (j *TableRepositoryImpl) FindAll() ([]*models.Table, error) {
 	var tables []*models.Table

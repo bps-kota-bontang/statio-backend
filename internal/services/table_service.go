@@ -53,80 +53,128 @@ func (s *TableService) GetAllPaginated(
 	sortBy, sortOrder string,
 	filters map[string][]string,
 ) ([]*dto.TableListResponse, int64, error) {
-
-	var total int64
-	if err := s.tableRepo.Count(search, filters, &total); err != nil {
+	// 1) Ambil kandidat (light)
+	lightTables, err := s.tableRepo.FindLight(search, sortBy, sortOrder, filters)
+	if err != nil {
 		return nil, 0, err
 	}
+	if len(lightTables) == 0 {
+		return []*dto.TableListResponse{}, 0, nil
+	}
 
-	offset := (page - 1) * perPage
-	tables, err := s.tableRepo.FindPaginated(search, perPage, offset, sortBy, sortOrder, filters)
+	// collect all IDs
+	allIDs := make([]string, 0, len(lightTables))
+	for _, t := range lightTables {
+		allIDs = append(allIDs, t.ID)
+	}
+
+	// 2) Load dimensions+values for all candidate IDs (dipakai hitung expectedPerYear)
+	dimTables, err := s.tableRepo.LoadDimensionsForTableIDs(allIDs)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// -----------------------------
-	// HITUNG MISSING FACTS SEMUA TABLE
-	// -----------------------------
+	// buat map id -> *models.Table (with dimensions loaded)
+	dimMap := make(map[string]*models.Table, len(dimTables))
+	for _, t := range dimTables {
+		dimMap[t.ID] = t
+	}
+
+	// gunakan dimMap to build list of tables for fact counting (reuse GetMissingFactsForTables)
+	// Build a slice in same order as allIDs
+	tablesForCount := make([]*models.Table, 0, len(allIDs))
+	for _, id := range allIDs {
+		if t, ok := dimMap[id]; ok {
+			tablesForCount = append(tablesForCount, t)
+		} else {
+			// if not loaded for some reason, create a minimal table with ID
+			tablesForCount = append(tablesForCount, &models.Table{ID: id})
+		}
+	}
+
+	// 3) Hitung missing facts untuk semua candidate tables
 	currentYear := time.Now().Year()
 	fromYear := currentYear - 4
 	toYear := currentYear - 1
 
-	missingFactsMap, err := s.factSvc.GetMissingFactsForTables(tables, fromYear, toYear)
+	missingFactsMap, err := s.factSvc.GetMissingFactsForTables(tablesForCount, fromYear, toYear)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get missing facts: %w", err)
 	}
 
-	// ------------------------------------------
-	//  FILTER MISSING FACTS (dari filters map)
-	// ------------------------------------------
-
-	var missingFactsFilter *bool // nil = no filter
-	if values, ok := filters["missing_facts"]; ok && len(values) > 0 {
-		// gunakan hanya index 0
-		switch values[0] {
+	// 4) Apply missing_facts filter in memory (if requested)
+	var missingFilter *bool
+	if v, ok := filters["missing_facts"]; ok && len(v) > 0 {
+		switch v[0] {
 		case "true":
-			tmp := true
-			missingFactsFilter = &tmp
+			x := true
+			missingFilter = &x
 		case "false":
-			tmp := false
-			missingFactsFilter = &tmp
+			x := false
+			missingFilter = &x
 		}
 	}
 
-	filteredTables := make([]*models.Table, 0)
-	for _, table := range tables {
-		summary := missingFactsMap[table.ID].Summary
-		totalMissing := summary.TotalMissing
+	// Build filtered ID list preserving original order
+	filteredIDs := make([]string, 0, len(allIDs))
+	for _, id := range allIDs {
+		sum := 0
+		if mf, ok := missingFactsMap[id]; ok {
+			sum = mf.Summary.TotalMissing
+		} else {
+			// if not present assume missing? you can decide; here assume missing (safe)
+			sum = 0
+		}
 
-		// Jika ada filter missing_facts, apply filter
-		if missingFactsFilter != nil {
-			if *missingFactsFilter && totalMissing == 0 {
+		if missingFilter != nil {
+			if *missingFilter && sum == 0 {
 				continue
 			}
-			if !*missingFactsFilter && totalMissing > 0 {
+			if !*missingFilter && sum > 0 {
 				continue
 			}
 		}
-
-		filteredTables = append(filteredTables, table)
+		filteredIDs = append(filteredIDs, id)
 	}
 
-	// total baru setelah filter
-	total = int64(len(filteredTables))
+	// 5) Total after filters
+	total := int64(len(filteredIDs))
 
-	// -----------------------------
-	// BANGUN RESPONSE
-	// -----------------------------
-	responses := make([]*dto.TableListResponse, 0, len(filteredTables))
+	// 6) Pagination in-memory
+	start := (page - 1) * perPage
+	if start >= len(filteredIDs) {
+		return []*dto.TableListResponse{}, total, nil
+	}
+	end := start + perPage
+	if end > len(filteredIDs) {
+		end = len(filteredIDs)
+	}
+	pagedIDs := filteredIDs[start:end]
 
-	for _, table := range filteredTables {
-		resp := mappers.ToTableListResponse(table)
+	// 7) Load detailed info only for pagedIDs
+	detailedTables, err := s.tableRepo.FindByIDsDetailed(pagedIDs)
+	if err != nil {
+		return nil, 0, err
+	}
 
-		if missing, ok := missingFactsMap[table.ID]; ok {
-			resp.MissingFactsSummary = &missing.Summary
+	// Make map for easy lookup
+	detailMap := make(map[string]*models.Table, len(detailedTables))
+	for _, t := range detailedTables {
+		detailMap[t.ID] = t
+	}
+
+	// 8) Build response preserving pagedIDs order
+	responses := make([]*dto.TableListResponse, 0, len(pagedIDs))
+	for _, id := range pagedIDs {
+		t := detailMap[id]
+		if t == nil {
+			// skip if somehow missing
+			continue
 		}
-
+		resp := mappers.ToTableListResponse(t)
+		if mf, ok := missingFactsMap[id]; ok {
+			resp.MissingFactsSummary = &mf.Summary
+		}
 		responses = append(responses, resp)
 	}
 
