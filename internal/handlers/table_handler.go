@@ -395,6 +395,86 @@ func (h *TableHandler) UpdateTableNotes(c *fiber.Ctx) error {
 	})
 }
 
+func (h *TableHandler) UpdateTableIsLocked(c *fiber.Ctx) error {
+	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to update table lock status",
+		})
+	}
+
+	var payload dto.UpdateTableIsLockedRequest
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid request payload",
+		})
+	}
+
+	if err := h.validate.Struct(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	if err := h.service.UpdateTableIsLocked(id, payload.Locked); err != nil {
+		status := 500
+		if err == gorm.ErrRecordNotFound {
+			status = 404
+		}
+		return c.Status(status).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    nil,
+		"message": "Table is_locked status updated successfully",
+	})
+}
+
+func (h *TableHandler) UpdateTableStatus(c *fiber.Ctx) error {
+	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+	orgID := c.Locals("organization_id").(*string)
+
+	var payload dto.UpdateTableStatusRequest
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid request payload",
+		})
+	}
+
+	if err := h.validate.Struct(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	if err := h.service.UpdateTableStatus(id, payload.Status, roles, orgID); err != nil {
+		status := 500
+		if err == gorm.ErrRecordNotFound {
+			status = 404
+		}
+		return c.Status(status).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    nil,
+		"message": "Table status updated successfully",
+	})
+}
+
 func (h *TableHandler) GetMissingFacts(c *fiber.Ctx) error {
 	id := c.Params("id")
 	roles := c.Locals("roles").([]string)

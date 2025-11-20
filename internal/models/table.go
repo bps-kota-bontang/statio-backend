@@ -18,6 +18,8 @@ type Table struct {
 	Organization   *Organization    `gorm:"foreignKey:OrganizationID;constraint:OnDelete:CASCADE"`
 	Labels         pq.StringArray   `gorm:"type:text[]"`
 	Notes          *string          `gorm:"type:text"`
+	IsLocked       bool             `gorm:"type:boolean;not null;default:false"`
+	Status         string           `gorm:"type:text;not null;default:'draft'"`
 	Dimensions     []TableDimension `gorm:"foreignKey:TableID;constraint:OnDelete:CASCADE"`
 	Facts          []Fact           `gorm:"foreignKey:TableID;constraint:OnDelete:CASCADE"`
 	CreatedAt      time.Time

@@ -381,6 +381,60 @@ func (s *TableService) UpdateTableNotes(
 	return s.tableRepo.Update(table)
 }
 
+func (s *TableService) UpdateTableIsLocked(
+	tableID string,
+	isLocked bool,
+) error {
+	table, err := s.tableRepo.FindBaseByID(tableID)
+	if err != nil {
+		return err
+	}
+
+	table.IsLocked = isLocked
+
+	return s.tableRepo.Update(table)
+}
+
+func (s *TableService) UpdateTableStatus(
+	tableID string,
+	status string,
+	roles []string,
+	organizationID *string,
+) error {
+	table, err := s.tableRepo.FindBaseByID(tableID)
+	if err != nil {
+		return err
+	}
+
+	if !utils.IsAdmin(roles) {
+		if organizationID == nil || table.OrganizationID == nil || *organizationID != *table.OrganizationID {
+			return fmt.Errorf("you are not authorized to update the status for this table")
+		}
+	}
+
+	if status == "draft" {
+		if !utils.IsAdmin(roles) {
+			return fmt.Errorf("only admin users can change the table status to draft")
+		}
+		table.IsLocked = false
+	}
+
+	if status == "submitted" {
+		table.IsLocked = true
+	}
+
+	if status == "finalized" {
+		if !utils.IsAdmin(roles) {
+			return fmt.Errorf("only admin users can change the table status to finalized")
+		}
+		table.IsLocked = true
+	}
+
+	table.Status = status
+
+	return s.tableRepo.Update(table)
+}
+
 func (s *TableService) GetMissingFacts(
 	tableID string,
 	roles []string,

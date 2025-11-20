@@ -15,6 +15,8 @@ func ToTableResponse(table *models.Table, year *int) *dto.TableResponse {
 		Description: table.Description,
 		Labels:      table.Labels,
 		Notes:       table.Notes,
+		IsLocked:    table.IsLocked,
+		Status:      table.Status,
 		Dimensions:  []dto.DimensionResponse{},
 		Facts:       []dto.FactResponse{},
 	}
@@ -161,6 +163,8 @@ func ToTableListResponse(table *models.Table) *dto.TableListResponse {
 		Name:       table.Name,
 		Labels:     table.Labels,
 		Notes:      table.Notes,
+		IsLocked:   table.IsLocked,
+		Status:     table.Status,
 		Dimensions: extractDimensionNames(table.Dimensions),
 	}
 

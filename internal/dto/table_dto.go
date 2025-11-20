@@ -9,6 +9,8 @@ type TableResponse struct {
 	Organization *OrganizationResponse `json:"organization"`
 	Labels       []string              `json:"labels"`
 	Notes        *string               `json:"notes"`
+	IsLocked     bool                  `json:"is_locked"`
+	Status       string                `json:"status"`
 	Dimensions   []DimensionResponse   `json:"dimensions"`
 	Facts        []FactResponse        `json:"facts"`
 }
@@ -20,6 +22,8 @@ type TableListResponse struct {
 	Organization        *OrganizationResponse  `json:"organization"`
 	Labels              []string               `json:"labels"`
 	Notes               *string                `json:"notes"`
+	IsLocked            bool                   `json:"is_locked"`
+	Status              string                 `json:"status"`
 	Dimensions          []string               `json:"dimensions"`
 	MissingFactsSummary *SummaryMissingFacts   `json:"missing_facts_summary"`
 }
@@ -57,4 +61,12 @@ type UpdateTableNameRequest struct {
 
 type UpdateTableNotesRequest struct {
 	Notes *string `json:"notes" validate:"required"`
+}
+
+type UpdateTableIsLockedRequest struct {
+	Locked bool `json:"locked" validate:"required"`
+}
+
+type UpdateTableStatusRequest struct {
+	Status string `json:"status" validate:"required,oneof=draft submitted finalized"`
 }
