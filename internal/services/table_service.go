@@ -115,6 +115,12 @@ func (s *TableService) GetAllPaginated(
 		}
 	}
 
+	// Jika dua-duanya active, abaikan filter
+	if filterHasMissing && filterNoMissing {
+		filterHasMissing = false
+		filterNoMissing = false
+	}
+
 	filteredIDs := make([]string, 0, len(allIDs))
 
 	for _, id := range allIDs {
