@@ -65,19 +65,68 @@ func (s *TableService) GetAllPaginated(
 		return nil, 0, err
 	}
 
-	// Ambil summary missing facts sekaligus untuk semua table
+	// -----------------------------
+	// HITUNG MISSING FACTS SEMUA TABLE
+	// -----------------------------
 	currentYear := time.Now().Year()
-	missingFactsMap, err := s.factSvc.GetMissingFactsForTables(tables, currentYear-4, currentYear-1)
+	fromYear := currentYear - 4
+	toYear := currentYear - 1
+
+	missingFactsMap, err := s.factSvc.GetMissingFactsForTables(tables, fromYear, toYear)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get missing facts: %w", err)
 	}
 
-	responses := make([]*dto.TableListResponse, 0, len(tables))
-	for _, table := range tables {
-		resp := mappers.ToTableListResponse(table)
-		if missingFacts, ok := missingFactsMap[table.ID]; ok {
-			resp.MissingFactsSummary = &missingFacts.Summary
+	// ------------------------------------------
+	//  FILTER MISSING FACTS (dari filters map)
+	// ------------------------------------------
+
+	var missingFactsFilter *bool // nil = no filter
+	if values, ok := filters["missing_facts"]; ok && len(values) > 0 {
+		// gunakan hanya index 0
+		switch values[0] {
+		case "true":
+			tmp := true
+			missingFactsFilter = &tmp
+		case "false":
+			tmp := false
+			missingFactsFilter = &tmp
 		}
+	}
+
+	filteredTables := make([]*models.Table, 0)
+	for _, table := range tables {
+		summary := missingFactsMap[table.ID].Summary
+		totalMissing := summary.TotalMissing
+
+		// Jika ada filter missing_facts, apply filter
+		if missingFactsFilter != nil {
+			if *missingFactsFilter && totalMissing == 0 {
+				continue
+			}
+			if !*missingFactsFilter && totalMissing > 0 {
+				continue
+			}
+		}
+
+		filteredTables = append(filteredTables, table)
+	}
+
+	// total baru setelah filter
+	total = int64(len(filteredTables))
+
+	// -----------------------------
+	// BANGUN RESPONSE
+	// -----------------------------
+	responses := make([]*dto.TableListResponse, 0, len(filteredTables))
+
+	for _, table := range filteredTables {
+		resp := mappers.ToTableListResponse(table)
+
+		if missing, ok := missingFactsMap[table.ID]; ok {
+			resp.MissingFactsSummary = &missing.Summary
+		}
+
 		responses = append(responses, resp)
 	}
 
