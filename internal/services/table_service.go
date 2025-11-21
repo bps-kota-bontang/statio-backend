@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"statio/internal/dto"
 	"statio/internal/mappers"
 	"statio/internal/models"
@@ -577,4 +578,31 @@ func (s *TableService) GetMissingFacts(
 	}
 
 	return responses, nil
+}
+
+func (s *TableService) AnalyzeTable(tableID string) error {
+	payload, err := json.Marshal(&dto.AnalyzeFactPayload{
+		TableID: tableID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal analyze fact payload: %w", err)
+	}
+
+	task := asynq.NewTask("fact:analyze", payload)
+
+	if _, err := s.asynqClient.Enqueue(task); err != nil {
+		return fmt.Errorf("failed to enqueue analyze fact task: %w", err)
+	}
+
+	return nil
+}
+
+func (s *TableService) AnalyzeTables(tableIDs []string) error {
+	for _, tableID := range tableIDs {
+		if err := s.AnalyzeTable(tableID); err != nil {
+			log.Printf("failed to enqueue analyze task for table %s: %v", tableID, err)
+		}
+	}
+
+	return nil
 }

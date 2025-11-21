@@ -503,3 +503,67 @@ func (h *TableHandler) GetMissingFacts(c *fiber.Ctx) error {
 		"message": "Missing facts fetched successfully",
 	})
 }
+
+func (h *TableHandler) AnalyzeTable(c *fiber.Ctx) error {
+	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to create tables",
+		})
+	}
+
+	if err := h.service.AnalyzeTable(id); err != nil {
+		status := 500
+		if err == gorm.ErrRecordNotFound {
+			status = 404
+		}
+		return c.Status(status).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    nil,
+		"message": "Table analysis started successfully",
+	})
+}
+
+func (h *TableHandler) AnalyzeTables(c *fiber.Ctx) error {
+	roles := c.Locals("roles").([]string)
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to create tables",
+		})
+	}
+
+	var payload dto.AnalyzeTablesRequest
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid request payload",
+		})
+	}
+
+	if err := h.validate.Struct(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	if err := h.service.AnalyzeTables(payload.TableIDs); err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    nil,
+		"message": "Tables analysis started successfully",
+	})
+}
