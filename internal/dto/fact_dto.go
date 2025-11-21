@@ -7,8 +7,10 @@ type FactDimensionResponse struct {
 }
 
 type FactResponse struct {
+	OldValue   *float64                `json:"old_value"`
 	Value      *float64                `json:"value"`
 	Year       int                     `json:"year"`
+	IsOutlier  *bool                   `json:"is_outlier"`
 	Dimensions []FactDimensionResponse `json:"dimensions"`
 }
 

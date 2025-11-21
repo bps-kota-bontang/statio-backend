@@ -123,8 +123,10 @@ func TransformFactsWithBlanks(table *models.Table, year int) []dto.FactResponse 
 				dims := make([]dto.FactDimensionResponse, len(current))
 				copy(dims, current)
 				facts = append(facts, dto.FactResponse{
+					OldValue:   f.OldValue,
 					Value:      f.Value,
 					Year:       f.Year,
+					IsOutlier:  f.IsOutlier,
 					Dimensions: dims,
 				})
 			} else {

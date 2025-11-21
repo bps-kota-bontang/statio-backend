@@ -22,8 +22,10 @@ func ToFactResponse(fact *models.Fact) *dto.FactResponse {
 	}
 
 	return &dto.FactResponse{
+		OldValue:   fact.OldValue,
 		Value:      fact.Value,
 		Year:       fact.Year,
+		IsOutlier:  fact.IsOutlier,
 		Dimensions: dimensions,
 	}
 }
