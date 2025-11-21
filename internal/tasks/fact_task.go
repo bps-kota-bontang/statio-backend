@@ -18,6 +18,28 @@ func NewFactTask(services *services.FactService) *FactTask {
 	return &FactTask{services}
 }
 
+func (t *FactTask) UnanalyzeFacts(ctx context.Context, task *asynq.Task) error {
+	log.Println("Unanalyze facts task started")
+
+	var payload dto.UnanalyzeFactPayload
+
+	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
+		return err
+	}
+
+	log.Printf("Unanalyzing facts for table ID: %s", payload.TableID)
+
+	// Call the service method to unanalyze facts
+	if err := t.services.UnanalyzeFacts(payload.TableID); err != nil {
+		log.Printf("Error unanalyzing facts for table ID %s: %v", payload.TableID, err)
+		return nil
+	}
+
+	log.Printf("Successfully unanalyzed facts for table ID: %s", payload.TableID)
+
+	return nil
+}
+
 func (t *FactTask) AnalyzeFacts(ctx context.Context, task *asynq.Task) error {
 	log.Println("Analyze facts started")
 

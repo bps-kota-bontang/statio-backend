@@ -29,6 +29,7 @@ func NewAsynqWorker(
 
 	mux := asynq.NewServeMux()
 
+	mux.HandleFunc("fact:unanalyze", FactTask.UnanalyzeFacts)
 	mux.HandleFunc("fact:analyze", FactTask.AnalyzeFacts)
 
 	return &container.WorkerContainer{

@@ -19,6 +19,13 @@ func NewFactRepository(db *gorm.DB) FactRepository {
 	}
 }
 
+// ResetOutliersByTable implements FactRepository.
+func (f *FactRepositoryImpl) ResetOutliersByTable(tableID string) error {
+	return f.db.Model(&models.Fact{}).
+		Where("table_id = ?", tableID).
+		Update("is_outlier", nil).Error
+}
+
 // UpdateFact implements FactRepository.
 func (f *FactRepositoryImpl) UpdateFact(fact *models.Fact) error {
 	return f.db.Save(fact).Error

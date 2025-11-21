@@ -422,6 +422,19 @@ func (s *TableService) UpdateTableStatus(
 			return fmt.Errorf("only admin users can change the table status to draft")
 		}
 		table.IsLocked = false
+
+		payload, err := json.Marshal(&dto.UnanalyzeFactPayload{
+			TableID: table.ID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to marshal unanalyze fact payload: %w", err)
+		}
+
+		task := asynq.NewTask("fact:unanalyze", payload)
+
+		if _, err := s.asynqClient.Enqueue(task); err != nil {
+			return fmt.Errorf("failed to enqueue unanalyze fact task: %w", err)
+		}
 	}
 
 	if status == "submitted" {

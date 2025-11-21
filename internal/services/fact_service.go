@@ -331,3 +331,7 @@ func (s *FactService) AnalyzeFacts(tableID string) error {
 
 	return nil
 }
+
+func (s *FactService) UnanalyzeFacts(tableID string) error {
+	return s.factRepo.ResetOutliersByTable(tableID)
+}

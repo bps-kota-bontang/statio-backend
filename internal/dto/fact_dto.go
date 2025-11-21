@@ -46,6 +46,10 @@ type MissingFactsResponse struct {
 	Data     []DataMissingFact   `json:"data"`
 }
 
+type UnanalyzeFactPayload struct {
+	TableID string `json:"table_id"`
+}
+
 type AnalyzeFactPayload struct {
 	TableID string `json:"table_id"`
 }
