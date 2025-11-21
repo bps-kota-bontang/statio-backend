@@ -105,44 +105,125 @@ func (s *TableService) GetAllPaginated(
 		return nil, 0, fmt.Errorf("failed to get missing facts: %w", err)
 	}
 
-	// 4) Filter missing_facts (in-memory)
-	var filterHasMissing bool
-	var filterNoMissing bool
+	outliersMap, err := s.factSvc.GetOutlierCounts(allIDs)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count outliers: %w", err)
+	}
+
+	revisionMap, err := s.factSvc.GetRevisionCounts(allIDs)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count revisions: %w", err)
+	}
+
+	// 4) Filter missing_facts, outlier_facts, revision_facts (in-memory)
+
+	// ================= Missing Facts Filter =================
+	var filterHasMissing, filterNoMissing bool
 
 	if vals, ok := filters["missing_facts"]; ok {
 		for _, v := range vals {
-			switch v {
-			case "true":
+			if v == "true" {
 				filterHasMissing = true
-			case "false":
+			}
+			if v == "false" {
 				filterNoMissing = true
 			}
 		}
 	}
 
-	// Jika dua-duanya active, abaikan filter
 	if filterHasMissing && filterNoMissing {
 		filterHasMissing = false
 		filterNoMissing = false
 	}
 
+	// ================= Outlier Facts Filter =================
+	var filterHasOutlier, filterNoOutlier bool
+
+	if vals, ok := filters["outlier_facts"]; ok {
+		for _, v := range vals {
+			if v == "true" {
+				filterHasOutlier = true
+			}
+			if v == "false" {
+				filterNoOutlier = true
+			}
+		}
+	}
+
+	if filterHasOutlier && filterNoOutlier {
+		filterHasOutlier = false
+		filterNoOutlier = false
+	}
+
+	// ================= Revision Facts Filter =================
+	var filterHasRevision, filterNoRevision bool
+
+	if vals, ok := filters["revision_facts"]; ok {
+		for _, v := range vals {
+			if v == "true" {
+				filterHasRevision = true
+			}
+			if v == "false" {
+				filterNoRevision = true
+			}
+		}
+	}
+
+	if filterHasRevision && filterNoRevision {
+		filterHasRevision = false
+		filterNoRevision = false
+	}
+
+	// ================= Final Filter Loop =================
 	filteredIDs := make([]string, 0, len(allIDs))
 
 	for _, id := range allIDs {
-		// Ambil total missing
-		mfSum := 0
+
+		// missing facts
+		missingTotal := 0
 		if mf, ok := missingFactsMap[id]; ok {
-			mfSum = mf.Summary.TotalMissing
+			missingTotal = mf.Summary.TotalMissing
 		}
 
-		// Terapkan filter
-		if filterHasMissing && mfSum == 0 {
-			continue // butuh yang missing, tapi ini tidak missing
-		}
-		if filterNoMissing && mfSum > 0 {
-			continue // butuh yang lengkap, tapi ini missing
+		// outliers
+		outlierTotal := 0
+		if o, ok := outliersMap[id]; ok {
+			outlierTotal = o.TotalOutliers
 		}
 
+		// revisions
+		revisionTotal := 0
+		if rv, ok := revisionMap[id]; ok {
+			revisionTotal = rv.TotalRevisions
+		}
+
+		// ==== Apply filters ====
+
+		// missing_facts filter
+		if filterHasMissing && missingTotal == 0 {
+			continue
+		}
+		if filterNoMissing && missingTotal > 0 {
+			continue
+		}
+
+		// outlier_facts filter
+		if filterHasOutlier && outlierTotal == 0 {
+			continue
+		}
+		if filterNoOutlier && outlierTotal > 0 {
+			continue
+		}
+
+		// revision_facts filter
+		if filterHasRevision && revisionTotal == 0 {
+			continue
+		}
+		if filterNoRevision && revisionTotal > 0 {
+			continue
+		}
+
+		// lolos semua filter
 		filteredIDs = append(filteredIDs, id)
 	}
 
@@ -178,8 +259,15 @@ func (s *TableService) GetAllPaginated(
 			if mf, ok := missingFactsMap[id]; ok {
 				resp.MissingFactsSummary = &mf.Summary
 			}
+			if outlierCount, ok := outliersMap[id]; ok {
+				resp.OutlierFactsSummary = outlierCount
+			}
+			if revisionCount, ok := revisionMap[id]; ok {
+				resp.RevisionFactsSummary = revisionCount
+			}
 			responses = append(responses, resp)
 		}
+
 	}
 
 	return responses, total, nil

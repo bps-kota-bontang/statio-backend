@@ -31,6 +31,14 @@ type SummaryMissingFacts struct {
 	TotalMissing    int `json:"total_missing"`
 }
 
+type SummaryOutlierFacts struct {
+	TotalOutliers int `json:"total_outliers"`
+}
+
+type SummaryRevisionFacts struct {
+	TotalRevisions int `json:"total_revisions"`
+}
+
 type DataMissingFact struct {
 	Year     int `json:"year"`
 	Expected int `json:"expected"`

@@ -42,6 +42,8 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 		"organization_id",
 		"labels",
 		"missing_facts",
+		"outlier_facts",
+		"revision_facts",
 		"status",
 	}
 	for _, key := range keys {

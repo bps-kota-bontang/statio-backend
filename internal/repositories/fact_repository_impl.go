@@ -152,6 +152,60 @@ func (r *FactRepositoryImpl) CountFactsByYear(tableID string, fromYear, toYear i
 	return counts, nil
 }
 
+func (r *FactRepositoryImpl) CountOutliersForTables(tableIDs []string) (map[string]int, error) {
+	type row struct {
+		TableID string
+		Count   int
+	}
+
+	var rows []row
+
+	err := r.db.
+		Table("facts").
+		Select("table_id, COUNT(*) as count").
+		Where("is_outlier = TRUE AND table_id IN ?", tableIDs).
+		Group("table_id").
+		Scan(&rows).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]int)
+	for _, r := range rows {
+		result[r.TableID] = r.Count
+	}
+
+	return result, nil
+}
+
+func (r *FactRepositoryImpl) CountRevisionsForTables(tableIDs []string) (map[string]int, error) {
+	type row struct {
+		TableID string
+		Count   int
+	}
+
+	var rows []row
+
+	err := r.db.
+		Table("facts").
+		Select("table_id, COUNT(*) as count").
+		Where("old_value IS NOT NULL AND value IS NOT NULL AND old_value != value AND table_id IN ?", tableIDs).
+		Group("table_id").
+		Scan(&rows).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]int)
+	for _, r := range rows {
+		result[r.TableID] = r.Count
+	}
+
+	return result, nil
+}
+
 func (r *FactRepositoryImpl) CountFactsByYearForTables(tableIDs []string, fromYear, toYear int) (map[string]map[int]int, error) {
 	type result struct {
 		TableID string

@@ -208,6 +208,52 @@ func (s *FactService) GetMissingFactsForTable(table *models.Table, fromYear, toY
 	}, nil
 }
 
+func (s *FactService) GetOutlierCounts(tableIDs []string) (map[string]*dto.SummaryOutlierFacts, error) {
+	// Query outlier dari repo
+	outlierCounts, err := s.factRepo.CountOutliersForTables(tableIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Siapkan map dengan default 0 untuk semua table
+	result := make(map[string]*dto.SummaryOutlierFacts, len(tableIDs))
+	for _, id := range tableIDs {
+		result[id] = &dto.SummaryOutlierFacts{
+			TotalOutliers: 0, // default 0
+		}
+	}
+
+	// Override untuk yang punya data outlier
+	for tableID, count := range outlierCounts {
+		result[tableID].TotalOutliers = count
+	}
+
+	return result, nil
+}
+
+func (s *FactService) GetRevisionCounts(tableIDs []string) (map[string]*dto.SummaryRevisionFacts, error) {
+	// Query revision dari repo
+	revisionCounts, err := s.factRepo.CountRevisionsForTables(tableIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Buat map dengan default 0 untuk semua table
+	result := make(map[string]*dto.SummaryRevisionFacts, len(tableIDs))
+	for _, id := range tableIDs {
+		result[id] = &dto.SummaryRevisionFacts{
+			TotalRevisions: 0, // default 0
+		}
+	}
+
+	// Override jika ada hasil per table
+	for tableID, count := range revisionCounts {
+		result[tableID].TotalRevisions = count
+	}
+
+	return result, nil
+}
+
 func (s *FactService) GetMissingFactsForTables(tables []*models.Table, fromYear, toYear int) (map[string]*dto.MissingFactsResponse, error) {
 	tableIDs := make([]string, len(tables))
 	for i, t := range tables {
