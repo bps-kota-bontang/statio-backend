@@ -36,14 +36,10 @@ func InitializeWorker() (*container.WorkerContainer, error) {
 	if err != nil {
 		return nil, err
 	}
-	tableRepository := repositories.NewTableRepository(db)
 	factRepository := repositories.NewFactRepository(db)
 	factService := services.NewFactService(factRepository, db)
-	dimensionRepository := repositories.NewDimensionRepository(db)
-	dimensionService := services.NewDimensionService(dimensionRepository)
-	tableService := services.NewTableService(tableRepository, factService, dimensionService, db)
-	tableTask := tasks.NewTableTask(tableService)
-	workerContainer, err := app.NewAsynqWorker(appConfig, redisConfig, tableTask)
+	factTask := tasks.NewFactTask(factService)
+	workerContainer, err := app.NewAsynqWorker(appConfig, redisConfig, factTask)
 	if err != nil {
 		return nil, err
 	}

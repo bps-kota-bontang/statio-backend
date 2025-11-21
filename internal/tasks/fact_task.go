@@ -1,0 +1,41 @@
+package tasks
+
+import (
+	"context"
+	"encoding/json"
+	"log"
+	"statio/internal/dto"
+	"statio/internal/services"
+
+	"github.com/hibiken/asynq"
+)
+
+type FactTask struct {
+	services *services.FactService
+}
+
+func NewFactTask(services *services.FactService) *FactTask {
+	return &FactTask{services}
+}
+
+func (t *FactTask) AnalyzeFacts(ctx context.Context, task *asynq.Task) error {
+	log.Println("Analyze facts started")
+
+	var payload dto.AnalyzeFactPayload
+
+	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
+		return err
+	}
+
+	log.Printf("Analyzing facts for table ID: %s", payload.TableID)
+
+	// Call the service method to analyze facts
+	if err := t.services.AnalyzeFacts(payload.TableID); err != nil {
+		log.Printf("Error analyzing facts for table ID %s: %v", payload.TableID, err)
+		return nil
+	}
+
+	log.Printf("Successfully analyzed facts for table ID: %s", payload.TableID)
+
+	return nil
+}

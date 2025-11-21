@@ -19,6 +19,11 @@ func NewFactRepository(db *gorm.DB) FactRepository {
 	}
 }
 
+// UpdateFact implements FactRepository.
+func (f *FactRepositoryImpl) UpdateFact(fact *models.Fact) error {
+	return f.db.Save(fact).Error
+}
+
 // Find single fact by dimensions
 func (f *FactRepositoryImpl) FindFactByDimensionValues(tableID string, year int, dimValueIDs []string) (*models.Fact, error) {
 	if len(dimValueIDs) == 0 {

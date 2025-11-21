@@ -45,3 +45,7 @@ type MissingFactsResponse struct {
 	Summary  SummaryMissingFacts `json:"summary"`
 	Data     []DataMissingFact   `json:"data"`
 }
+
+type AnalyzeFactPayload struct {
+	TableID string `json:"table_id"`
+}

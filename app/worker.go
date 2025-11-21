@@ -12,7 +12,7 @@ import (
 func NewAsynqWorker(
 	appConfig *config.AppConfig,
 	redisConfig *config.RedisConfig,
-	TableTask *tasks.TableTask,
+	FactTask *tasks.FactTask,
 ) (*container.WorkerContainer, error) {
 	redisClientOpt := asynq.RedisClientOpt{
 		Addr: redisConfig.RedisHost + ":" + redisConfig.RedisPort,
@@ -28,6 +28,8 @@ func NewAsynqWorker(
 	})
 
 	mux := asynq.NewServeMux()
+
+	mux.HandleFunc("fact:analyze", FactTask.AnalyzeFacts)
 
 	return &container.WorkerContainer{
 		Server: srv,

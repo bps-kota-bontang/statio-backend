@@ -23,24 +23,24 @@ jobs:
       - name: Push Docker Image
         run: |
           docker push ${{ secrets.DOCKER_REGISTRY_URL }}/${{ secrets.DOCKER_REGISTRY_USERNAME }}/statio-backend:latest
-  # build-worker:
-  #   name: Build Statio Worker
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout Repository
-  #       uses: actions/checkout@v5
-  #     - name: Docker Auth
-  #       run: |
-  #         echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_URL }} --username ${{ github.actor }} --password-stdin
-  #     - name: Build Docker Image
-  #       run: |
-  #         docker build \
-  #         -f Dockerfile.worker \
-  #         -t ${{ secrets.DOCKER_REGISTRY_URL }}/${{ secrets.DOCKER_REGISTRY_USERNAME }}/statio-worker:latest \
-  #         .
-  #     - name: Push Docker Image
-  #       run: |
-  #         docker push ${{ secrets.DOCKER_REGISTRY_URL }}/${{ secrets.DOCKER_REGISTRY_USERNAME }}/statio-worker:latest
+  build-worker:
+    name: Build Statio Worker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+      - name: Docker Auth
+        run: |
+          echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_URL }} --username ${{ github.actor }} --password-stdin
+      - name: Build Docker Image
+        run: |
+          docker build \
+          -f Dockerfile.worker \
+          -t ${{ secrets.DOCKER_REGISTRY_URL }}/${{ secrets.DOCKER_REGISTRY_USERNAME }}/statio-worker:latest \
+          .
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.DOCKER_REGISTRY_URL }}/${{ secrets.DOCKER_REGISTRY_USERNAME }}/statio-worker:latest
   # build-scheduler:
   #   name: Build Statio Scheduler
   #   runs-on: ubuntu-latest

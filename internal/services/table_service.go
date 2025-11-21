@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"statio/internal/dto"
 	"statio/internal/mappers"
@@ -9,6 +10,7 @@ import (
 	"statio/utils"
 	"time"
 
+	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 )
 
@@ -16,6 +18,7 @@ type TableService struct {
 	tableRepo    repositories.TableRepository
 	factSvc      *FactService
 	dimensionSvc *DimensionService
+	asynqClient  *asynq.Client
 	db           *gorm.DB
 }
 
@@ -23,12 +26,14 @@ func NewTableService(
 	tableRepo repositories.TableRepository,
 	factSvc *FactService,
 	dimensionSvc *DimensionService,
+	asynqClient *asynq.Client,
 	db *gorm.DB,
 ) *TableService {
 	return &TableService{
 		tableRepo:    tableRepo,
 		factSvc:      factSvc,
 		dimensionSvc: dimensionSvc,
+		asynqClient:  asynqClient,
 		db:           db,
 	}
 }
@@ -421,6 +426,19 @@ func (s *TableService) UpdateTableStatus(
 
 	if status == "submitted" {
 		table.IsLocked = true
+
+		payload, err := json.Marshal(&dto.AnalyzeFactPayload{
+			TableID: table.ID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to marshal analyze fact payload: %w", err)
+		}
+
+		task := asynq.NewTask("fact:analyze", payload)
+
+		if _, err := s.asynqClient.Enqueue(task); err != nil {
+			return fmt.Errorf("failed to enqueue analyze fact task: %w", err)
+		}
 	}
 
 	if status == "finalized" {

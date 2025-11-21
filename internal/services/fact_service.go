@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
 	"statio/internal/dto"
 	"statio/internal/models"
 	"statio/internal/repositories"
@@ -265,4 +266,68 @@ func (s *FactService) GetMissingFactsForTables(tables []*models.Table, fromYear,
 	}
 
 	return result, nil
+}
+
+func (s *FactService) AnalyzeFacts(tableID string) error {
+	facts, err := s.factRepo.FindAllByTable(tableID)
+	if err != nil {
+		return err
+	}
+
+	// 1. Kelompokkan facts berdasarkan DimensionValue yang sama
+	groups := make(map[string][]*models.Fact) // key = dimensionKey
+	for i := range facts {
+		key := utils.BuildDimensionKey(facts[i])
+		groups[key] = append(groups[key], facts[i])
+	}
+
+	// 2. Proses setiap group
+	for _, groupFacts := range groups {
+
+		// Ambil nilai Value saja (ignore nil)
+		var values []float64
+		var factIndex []int // index ke fact sebenarnya
+
+		for idx, f := range groupFacts {
+			if f.Value != nil {
+				values = append(values, *f.Value)
+				factIndex = append(factIndex, idx)
+			}
+		}
+
+		// Tidak bisa analisa kalau <3 data
+		if len(values) < 3 {
+			continue
+		}
+
+		// 3. Jalankan Modified Z-Score
+		outlierIndexes, mzScores, err := utils.DetectOutliersModifiedZ(values)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("Modified Z-Scores for group (dimension key=%s): %v\n", utils.BuildDimensionKey(groupFacts[0]), mzScores)
+		log.Printf("Found %d outliers in group (dimension key=%s) with %d values\n", len(outlierIndexes), utils.BuildDimensionKey(groupFacts[0]), len(values))
+
+		// 4. Simpan hasil ke struct Fact
+		outlierSet := make(map[int]bool)
+		for _, oi := range outlierIndexes {
+			outlierSet[oi] = true
+		}
+
+		for i, idx := range factIndex {
+			isOutlier := outlierSet[i]
+			groupFacts[idx].IsOutlier = &isOutlier
+		}
+
+	}
+
+	// 5. Simpan semua fact yang sudah diperbarui
+	for _, f := range facts {
+		if err := s.factRepo.UpdateFact(f); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

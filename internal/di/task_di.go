@@ -8,5 +8,5 @@ import (
 
 // Wire Set
 var TaskSet = wire.NewSet(
-	tasks.NewTableTask,
+	tasks.NewFactTask,
 )
