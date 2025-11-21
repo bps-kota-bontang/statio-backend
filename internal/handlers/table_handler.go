@@ -42,6 +42,7 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 		"organization_id",
 		"labels",
 		"missing_facts",
+		"status",
 	}
 	for _, key := range keys {
 		// c.Context().QueryArgs().PeekMulti(key) mengembalikan [][]byte
