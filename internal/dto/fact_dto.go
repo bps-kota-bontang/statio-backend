@@ -24,34 +24,30 @@ type UpdateFactRequest struct {
 	Data []FactPayload `json:"data"`
 }
 
-type SummaryMissingFacts struct {
+type SummaryInsightFacts struct {
 	ExpectedPerYear int `json:"expected_per_year"`
-	TotalExpected   int `json:"total_expected"`
-	TotalFilled     int `json:"total_filled"`
-	TotalMissing    int `json:"total_missing"`
+	TotalExpecteds  int `json:"total_expecteds"`
+	TotalFilleds    int `json:"total_filleds"`
+	TotalMissings   int `json:"total_missings"`
+	TotalRevisions  int `json:"total_revisions"`
+	TotalOutliers   int `json:"total_outliers"`
 }
 
-type SummaryOutlierFacts struct {
-	TotalOutliers int `json:"total_outliers"`
-}
-
-type SummaryRevisionFacts struct {
-	TotalRevisions int `json:"total_revisions"`
-}
-
-type DataMissingFact struct {
+type DataInsightFact struct {
 	Year     int `json:"year"`
 	Expected int `json:"expected"`
 	Filled   int `json:"filled"`
 	Missing  int `json:"missing"`
+	Revision int `json:"revision"`
+	Outlier  int `json:"outlier"`
 }
 
-type MissingFactsResponse struct {
+type InsightFactsResponse struct {
 	TableID  string              `json:"table_id"`
 	FromYear int                 `json:"from_year"`
 	ToYear   int                 `json:"to_year"`
-	Summary  SummaryMissingFacts `json:"summary"`
-	Data     []DataMissingFact   `json:"data"`
+	Summary  SummaryInsightFacts `json:"summary"`
+	Data     []DataInsightFact   `json:"data"`
 }
 
 type UnanalyzeFactPayload struct {

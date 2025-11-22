@@ -13,6 +13,84 @@ type FactRepositoryImpl struct {
 	db *gorm.DB
 }
 
+// CountOutliersByYear implements FactRepository.
+func (r *FactRepositoryImpl) CountOutliersByYear(tableID string, fromYear, toYear int) (map[int]int, error) {
+	type row struct {
+		Year  int
+		Count int
+	}
+
+	var rows []row
+
+	err := r.db.
+		Table("facts").
+		Select("year, COUNT(*) as count").
+		Where("table_id = ? AND is_outlier = TRUE AND year BETWEEN ? AND ?", tableID, fromYear, toYear).
+		Group("year").
+		Order("year ASC").
+		Scan(&rows).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[int]int)
+	for _, r := range rows {
+		result[r.Year] = r.Count
+	}
+
+	// supaya tahun yang tidak muncul tetap 0
+	for year := fromYear; year <= toYear; year++ {
+		if _, ok := result[year]; !ok {
+			result[year] = 0
+		}
+	}
+
+	return result, nil
+}
+
+// CountRevisionsByYear implements FactRepository.
+func (r *FactRepositoryImpl) CountRevisionsByYear(tableID string, fromYear, toYear int) (map[int]int, error) {
+	type row struct {
+		Year  int
+		Count int
+	}
+
+	var rows []row
+
+	err := r.db.
+		Table("facts").
+		Select("year, COUNT(*) as count").
+		Where(`
+			table_id = ?
+			AND old_value IS NOT NULL
+			AND value IS NOT NULL
+			AND old_value != value
+			AND year BETWEEN ? AND ?
+		`, tableID, fromYear, toYear).
+		Group("year").
+		Order("year ASC").
+		Scan(&rows).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[int]int)
+	for _, r := range rows {
+		result[r.Year] = r.Count
+	}
+
+	// tahun yang tidak ada tetap 0
+	for year := fromYear; year <= toYear; year++ {
+		if _, ok := result[year]; !ok {
+			result[year] = 0
+		}
+	}
+
+	return result, nil
+}
+
 func NewFactRepository(db *gorm.DB) FactRepository {
 	return &FactRepositoryImpl{
 		db: db,

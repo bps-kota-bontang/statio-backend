@@ -16,18 +16,16 @@ type TableResponse struct {
 }
 
 type TableListResponse struct {
-	ID                   string                 `json:"id"`
-	Name                 string                 `json:"name"`
-	Indicator            *IndicatorListResponse `json:"indicator"`
-	Organization         *OrganizationResponse  `json:"organization"`
-	Labels               []string               `json:"labels"`
-	Notes                *string                `json:"notes"`
-	IsLocked             bool                   `json:"is_locked"`
-	Status               string                 `json:"status"`
-	Dimensions           []string               `json:"dimensions"`
-	MissingFactsSummary  *SummaryMissingFacts   `json:"missing_facts_summary"`
-	OutlierFactsSummary  *SummaryOutlierFacts   `json:"outlier_facts_summary"`
-	RevisionFactsSummary *SummaryRevisionFacts  `json:"revision_facts_summary"`
+	ID                  string                 `json:"id"`
+	Name                string                 `json:"name"`
+	Indicator           *IndicatorListResponse `json:"indicator"`
+	Organization        *OrganizationResponse  `json:"organization"`
+	Labels              []string               `json:"labels"`
+	Notes               *string                `json:"notes"`
+	IsLocked            bool                   `json:"is_locked"`
+	Status              string                 `json:"status"`
+	Dimensions          []string               `json:"dimensions"`
+	InsightFactsSummary *SummaryInsightFacts   `json:"insight_facts_summary"`
 }
 
 type CreateTableRequest struct {

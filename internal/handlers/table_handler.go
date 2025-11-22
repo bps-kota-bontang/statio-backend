@@ -478,7 +478,7 @@ func (h *TableHandler) UpdateTableStatus(c *fiber.Ctx) error {
 	})
 }
 
-func (h *TableHandler) GetMissingFacts(c *fiber.Ctx) error {
+func (h *TableHandler) GetInsightFacts(c *fiber.Ctx) error {
 	id := c.Params("id")
 	roles := c.Locals("roles").([]string)
 	orgID := c.Locals("organization_id").(*string)
@@ -486,7 +486,7 @@ func (h *TableHandler) GetMissingFacts(c *fiber.Ctx) error {
 	fromYear := c.QueryInt("from_year", currentYear-4)
 	toYear := c.QueryInt("to_year", currentYear)
 
-	missingFacts, err := h.service.GetMissingFacts(id, roles, orgID, fromYear, toYear)
+	insightFacts, err := h.service.GetInsightFacts(id, roles, orgID, fromYear, toYear)
 	if err != nil {
 		status := 500
 		if err == gorm.ErrRecordNotFound {
@@ -499,8 +499,8 @@ func (h *TableHandler) GetMissingFacts(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"data":    missingFacts,
-		"message": "Missing facts fetched successfully",
+		"data":    insightFacts,
+		"message": "Insight facts fetched successfully",
 	})
 }
 

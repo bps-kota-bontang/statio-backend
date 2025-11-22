@@ -158,115 +158,127 @@ func (s *FactService) SaveOrUpdateFacts(table *models.Table, payload *dto.Update
 	return tx.Commit().Error
 }
 
-func (s *FactService) GetMissingFactsForTable(table *models.Table, fromYear, toYear int) (*dto.MissingFactsResponse, error) {
-	// Hitung jumlah kombinasi dimensi
-	expectedPerYear := 1
-	for _, td := range table.Dimensions {
-		if td.Dimension != nil {
-			expectedPerYear *= len(td.Dimension.Values)
-		}
+func (s *FactService) GetInsightFactsForTable(table *models.Table, fromYear, toYear int) (*dto.InsightFactsResponse, error) {
+	// Validasi tahun
+	if fromYear > toYear {
+		return nil, fmt.Errorf("invalid year range: fromYear %d > toYear %d", fromYear, toYear)
 	}
 
-	// Ambil jumlah faktual per tahun dari DB
+	// Hitung kombinasi dimensi
+	expectedPerYear := 1
+	for _, td := range table.Dimensions {
+		if td.Dimension == nil {
+			continue
+		}
+
+		valCount := len(td.Dimension.Values)
+		if valCount == 0 {
+			valCount = 1
+		}
+
+		expectedPerYear *= valCount
+	}
+
+	// Ambil fakta dari database
 	filledCounts, err := s.factRepo.CountFactsByYear(table.ID, fromYear, toYear)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count facts: %w", err)
 	}
 
-	// Bangun response model
-	data := make([]dto.DataMissingFact, 0, toYear-fromYear+1)
-	totalExpected := 0
-	totalFilled := 0
-	totalMissing := 0
+	// Ambil jumlah outlier per tahun
+	outlierCounts, err := s.factRepo.CountOutliersByYear(table.ID, fromYear, toYear)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count outliers: %w", err)
+	}
+
+	// Ambil jumlah revision per tahun
+	revisionCounts, err := s.factRepo.CountRevisionsByYear(table.ID, fromYear, toYear)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count revisions: %w", err)
+	}
+
+	// Persiapkan slice data
+	data := make([]dto.DataInsightFact, 0, toYear-fromYear+1)
+
+	totalExpecteds := 0
+	totalFilleds := 0
+	totalMissings := 0
+	totalOutliers := 0
+	totalRevisions := 0
 
 	for year := fromYear; year <= toYear; year++ {
 		filled := filledCounts[year]
-		missing := max(expectedPerYear-filled, 0)
-		data = append(data, dto.DataMissingFact{
+		missing := expectedPerYear - filled
+		if missing < 0 {
+			missing = 0
+		}
+
+		outlier := outlierCounts[year]
+		revision := revisionCounts[year]
+
+		data = append(data, dto.DataInsightFact{
 			Year:     year,
 			Expected: expectedPerYear,
 			Filled:   filled,
 			Missing:  missing,
+			Outlier:  outlier,
+			Revision: revision,
 		})
 
-		totalExpected += expectedPerYear
-		totalFilled += filled
-		totalMissing += missing
+		totalExpecteds += expectedPerYear
+		totalFilleds += filled
+		totalMissings += missing
+		totalOutliers += outlier
+		totalRevisions += revision
 	}
 
-	return &dto.MissingFactsResponse{
+	return &dto.InsightFactsResponse{
 		TableID:  table.ID,
 		FromYear: fromYear,
 		ToYear:   toYear,
-		Summary: dto.SummaryMissingFacts{
+		Summary: dto.SummaryInsightFacts{
 			ExpectedPerYear: expectedPerYear,
-			TotalExpected:   totalExpected,
-			TotalFilled:     totalFilled,
-			TotalMissing:    totalMissing,
+			TotalExpecteds:  totalExpecteds,
+			TotalFilleds:    totalFilleds,
+			TotalMissings:   totalMissings,
+			TotalOutliers:   totalOutliers,
+			TotalRevisions:  totalRevisions,
 		},
 		Data: data,
 	}, nil
 }
 
-func (s *FactService) GetOutlierCounts(tableIDs []string) (map[string]*dto.SummaryOutlierFacts, error) {
-	// Query outlier dari repo
-	outlierCounts, err := s.factRepo.CountOutliersForTables(tableIDs)
-	if err != nil {
-		return nil, err
-	}
+func (s *FactService) GetInsightFactsForTables(
+	tables []*models.Table,
+	fromYear, toYear int,
+) (map[string]*dto.InsightFactsResponse, error) {
 
-	// Siapkan map dengan default 0 untuk semua table
-	result := make(map[string]*dto.SummaryOutlierFacts, len(tableIDs))
-	for _, id := range tableIDs {
-		result[id] = &dto.SummaryOutlierFacts{
-			TotalOutliers: 0, // default 0
-		}
-	}
-
-	// Override untuk yang punya data outlier
-	for tableID, count := range outlierCounts {
-		result[tableID].TotalOutliers = count
-	}
-
-	return result, nil
-}
-
-func (s *FactService) GetRevisionCounts(tableIDs []string) (map[string]*dto.SummaryRevisionFacts, error) {
-	// Query revision dari repo
-	revisionCounts, err := s.factRepo.CountRevisionsForTables(tableIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	// Buat map dengan default 0 untuk semua table
-	result := make(map[string]*dto.SummaryRevisionFacts, len(tableIDs))
-	for _, id := range tableIDs {
-		result[id] = &dto.SummaryRevisionFacts{
-			TotalRevisions: 0, // default 0
-		}
-	}
-
-	// Override jika ada hasil per table
-	for tableID, count := range revisionCounts {
-		result[tableID].TotalRevisions = count
-	}
-
-	return result, nil
-}
-
-func (s *FactService) GetMissingFactsForTables(tables []*models.Table, fromYear, toYear int) (map[string]*dto.MissingFactsResponse, error) {
 	tableIDs := make([]string, len(tables))
 	for i, t := range tables {
 		tableIDs[i] = t.ID
 	}
 
+	// =============== QUERY SEKALI UNTUK SEMUA ===============
 	filledCounts, err := s.factRepo.CountFactsByYearForTables(tableIDs, fromYear, toYear)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make(map[string]*dto.MissingFactsResponse, len(tables))
+	outlierCounts, err := s.factRepo.CountOutliersForTables(tableIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	revisionCounts, err := s.factRepo.CountRevisionsForTables(tableIDs)
+	if err != nil {
+		return nil, err
+	}
+	// ========================================================
+
+	result := make(map[string]*dto.InsightFactsResponse, len(tables))
+
 	for _, table := range tables {
+
 		// Hitung expected per year
 		expectedPerYear := 1
 		for _, td := range table.Dimensions {
@@ -275,37 +287,54 @@ func (s *FactService) GetMissingFactsForTables(tables []*models.Table, fromYear,
 			}
 		}
 
-		data := make([]dto.DataMissingFact, 0, toYear-fromYear+1)
-		totalExpected, totalFilled, totalMissing := 0, 0, 0
+		data := make([]dto.DataInsightFact, 0, toYear-fromYear+1)
+		totalExpecteds, totalFilleds, totalMissings := 0, 0, 0
+
+		yearlyFilled := filledCounts[table.ID]
 
 		for year := fromYear; year <= toYear; year++ {
 			filled := 0
-			if filledCounts[table.ID] != nil {
-				filled = filledCounts[table.ID][year]
+			if yearlyFilled != nil {
+				filled = yearlyFilled[year]
 			}
+
 			missing := max(expectedPerYear-filled, 0)
 
-			data = append(data, dto.DataMissingFact{
+			data = append(data, dto.DataInsightFact{
 				Year:     year,
 				Expected: expectedPerYear,
 				Filled:   filled,
 				Missing:  missing,
 			})
 
-			totalExpected += expectedPerYear
-			totalFilled += filled
-			totalMissing += missing
+			totalExpecteds += expectedPerYear
+			totalFilleds += filled
+			totalMissings += missing
 		}
 
-		result[table.ID] = &dto.MissingFactsResponse{
+		// Ambil outlier, default 0
+		totalOutliers := 0
+		if v, ok := outlierCounts[table.ID]; ok {
+			totalOutliers = v
+		}
+
+		// Ambil revision, default 0
+		totalRevisions := 0
+		if v, ok := revisionCounts[table.ID]; ok {
+			totalRevisions = v
+		}
+
+		result[table.ID] = &dto.InsightFactsResponse{
 			TableID:  table.ID,
 			FromYear: fromYear,
 			ToYear:   toYear,
-			Summary: dto.SummaryMissingFacts{
+			Summary: dto.SummaryInsightFacts{
 				ExpectedPerYear: expectedPerYear,
-				TotalExpected:   totalExpected,
-				TotalFilled:     totalFilled,
-				TotalMissing:    totalMissing,
+				TotalExpecteds:  totalExpecteds,
+				TotalFilleds:    totalFilleds,
+				TotalMissings:   totalMissings,
+				TotalOutliers:   totalOutliers,
+				TotalRevisions:  totalRevisions,
 			},
 			Data: data,
 		}

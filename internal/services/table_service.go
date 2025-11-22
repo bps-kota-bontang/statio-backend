@@ -101,19 +101,9 @@ func (s *TableService) GetAllPaginated(
 	fromYear := currentYear - 4
 	toYear := currentYear - 1
 
-	missingFactsMap, err := s.factSvc.GetMissingFactsForTables(tablesForCount, fromYear, toYear)
+	insightFactsMap, err := s.factSvc.GetInsightFactsForTables(tablesForCount, fromYear, toYear)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get missing facts: %w", err)
-	}
-
-	outliersMap, err := s.factSvc.GetOutlierCounts(allIDs)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to count outliers: %w", err)
-	}
-
-	revisionMap, err := s.factSvc.GetRevisionCounts(allIDs)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to count revisions: %w", err)
 	}
 
 	// 4) Filter missing_facts, outlier_facts, revision_facts (in-memory)
@@ -182,20 +172,12 @@ func (s *TableService) GetAllPaginated(
 
 		// missing facts
 		missingTotal := 0
-		if mf, ok := missingFactsMap[id]; ok {
-			missingTotal = mf.Summary.TotalMissing
-		}
-
-		// outliers
 		outlierTotal := 0
-		if o, ok := outliersMap[id]; ok {
-			outlierTotal = o.TotalOutliers
-		}
-
-		// revisions
 		revisionTotal := 0
-		if rv, ok := revisionMap[id]; ok {
-			revisionTotal = rv.TotalRevisions
+		if mf, ok := insightFactsMap[id]; ok {
+			missingTotal = mf.Summary.TotalMissings
+			outlierTotal = mf.Summary.TotalOutliers
+			revisionTotal = mf.Summary.TotalRevisions
 		}
 
 		// ==== Apply filters ====
@@ -257,15 +239,10 @@ func (s *TableService) GetAllPaginated(
 	for _, id := range pagedIDs {
 		if t := detailMap[id]; t != nil {
 			resp := mappers.ToTableListResponse(t)
-			if mf, ok := missingFactsMap[id]; ok {
-				resp.MissingFactsSummary = &mf.Summary
+			if mf, ok := insightFactsMap[id]; ok {
+				resp.InsightFactsSummary = &mf.Summary
 			}
-			if outlierCount, ok := outliersMap[id]; ok {
-				resp.OutlierFactsSummary = outlierCount
-			}
-			if revisionCount, ok := revisionMap[id]; ok {
-				resp.RevisionFactsSummary = revisionCount
-			}
+
 			responses = append(responses, resp)
 		}
 
@@ -555,12 +532,12 @@ func (s *TableService) UpdateTableStatus(
 	return s.tableRepo.Update(table)
 }
 
-func (s *TableService) GetMissingFacts(
+func (s *TableService) GetInsightFacts(
 	tableID string,
 	roles []string,
 	organizationID *string,
 	fromYear, toYear int,
-) (*dto.MissingFactsResponse, error) {
+) (*dto.InsightFactsResponse, error) {
 	table, err := s.tableRepo.FindDetailedByID(tableID)
 	if err != nil || table == nil {
 		return nil, fmt.Errorf("table not found")
@@ -572,7 +549,7 @@ func (s *TableService) GetMissingFacts(
 		}
 	}
 
-	responses, err := s.factSvc.GetMissingFactsForTable(table, fromYear, toYear)
+	responses, err := s.factSvc.GetInsightFactsForTable(table, fromYear, toYear)
 	if err != nil {
 		return nil, err
 	}
