@@ -157,6 +157,35 @@ func (h *TableHandler) UpdateFacts(c *fiber.Ctx) error {
 	})
 }
 
+func (h *TableHandler) GetFacts(c *fiber.Ctx) error {
+	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+	orgID := c.Locals("organization_id").(*string)
+
+	dimValueIDs := c.Context().QueryArgs().PeekMulti("dimension_value_ids")
+	var dims []string
+	for _, d := range dimValueIDs {
+		dims = append(dims, string(d))
+	}
+
+	facts, err := h.service.GetTableFacts(id, dims, roles, orgID)
+	if err != nil {
+		status := 500
+		if err == gorm.ErrRecordNotFound {
+			status = 404
+		}
+		return c.Status(status).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    facts,
+		"message": "Facts fetched successfully",
+	})
+}
+
 func (h *TableHandler) CreateTable(c *fiber.Ctx) error {
 	var payload dto.CreateTableRequest
 	roles := c.Locals("roles").([]string)

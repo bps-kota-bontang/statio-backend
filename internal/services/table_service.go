@@ -331,6 +331,21 @@ func (s *TableService) UpdateTableFacts(tableID string, payload *dto.UpdateFactR
 	return s.factSvc.SaveOrUpdateFacts(table, payload)
 }
 
+func (s *TableService) GetTableFacts(tableID string, dimValueIDs, roles []string, organizationID *string) ([]*dto.FactResponse, error) {
+	table, err := s.tableRepo.FindForFactUpdate(tableID)
+	if err != nil || table == nil {
+		return nil, fmt.Errorf("table not found")
+	}
+
+	if !utils.IsAdmin(roles) {
+		if organizationID == nil || table.OrganizationID == nil || *organizationID != *table.OrganizationID {
+			return nil, fmt.Errorf("you are not authorized to view facts for this table")
+		}
+	}
+
+	return s.factSvc.GetFactsByTableID(tableID, dimValueIDs)
+}
+
 func (s *TableService) Create(input *dto.CreateTableRequest) (*dto.TableListResponse, error) {
 	var result *dto.TableListResponse
 

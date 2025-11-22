@@ -13,6 +13,31 @@ type FactRepositoryImpl struct {
 	db *gorm.DB
 }
 
+// FindAllByTableAndDimensionValues implements FactRepository.
+func (r *FactRepositoryImpl) FindAllByTableAndDimensionValues(tableID string, dimValueIDs []string) ([]*models.Fact, error) {
+	var facts []*models.Fact
+
+	// Jika array kosong → return semua facts
+	if len(dimValueIDs) == 0 {
+		err := r.db.
+			Where("table_id = ?", tableID).
+			Find(&facts).Error
+
+		return facts, err
+	}
+
+	// Jika array ada isinya → filter normal
+	err := r.db.Model(&models.Fact{}).
+		Joins("JOIN fact_dimension_values fdv ON fdv.fact_id = facts.id").
+		Where("facts.table_id = ?", tableID).
+		Where("fdv.dimension_value_id IN ?", dimValueIDs).
+		Group("facts.id").
+		Having("COUNT(fdv.id) = ?", len(dimValueIDs)).
+		Find(&facts).Error
+
+	return facts, err
+}
+
 // CountOutliersByYear implements FactRepository.
 func (r *FactRepositoryImpl) CountOutliersByYear(tableID string, fromYear, toYear int) (map[int]int, error) {
 	type row struct {

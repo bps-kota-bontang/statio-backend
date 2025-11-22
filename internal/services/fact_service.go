@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"statio/internal/dto"
+	"statio/internal/mappers"
 	"statio/internal/models"
 	"statio/internal/repositories"
 	"statio/utils"
@@ -409,4 +410,18 @@ func (s *FactService) AnalyzeFacts(tableID string) error {
 
 func (s *FactService) UnanalyzeFacts(tableID string) error {
 	return s.factRepo.ResetOutliersByTable(tableID)
+}
+
+func (s *FactService) GetFactsByTableID(tableID string, dimValueIDs []string) ([]*dto.FactResponse, error) {
+	facts, err := s.factRepo.FindAllByTableAndDimensionValues(tableID, dimValueIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]*dto.FactResponse, 0, len(facts))
+	for _, fact := range facts {
+		responses = append(responses, mappers.ToFactResponse(fact))
+	}
+
+	return responses, nil
 }
