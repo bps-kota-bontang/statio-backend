@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sort"
 	"statio/internal/dto"
 	"statio/internal/mappers"
 	"statio/internal/models"
@@ -110,7 +111,6 @@ func (s *TableService) GetAllPaginated(
 
 	// ================= Missing Facts Filter =================
 	var filterHasMissing, filterNoMissing bool
-
 	if vals, ok := filters["missing_facts"]; ok {
 		for _, v := range vals {
 			if v == "true" {
@@ -121,7 +121,6 @@ func (s *TableService) GetAllPaginated(
 			}
 		}
 	}
-
 	if filterHasMissing && filterNoMissing {
 		filterHasMissing = false
 		filterNoMissing = false
@@ -129,7 +128,6 @@ func (s *TableService) GetAllPaginated(
 
 	// ================= Outlier Facts Filter =================
 	var filterHasOutlier, filterNoOutlier bool
-
 	if vals, ok := filters["outlier_facts"]; ok {
 		for _, v := range vals {
 			if v == "true" {
@@ -140,7 +138,6 @@ func (s *TableService) GetAllPaginated(
 			}
 		}
 	}
-
 	if filterHasOutlier && filterNoOutlier {
 		filterHasOutlier = false
 		filterNoOutlier = false
@@ -148,7 +145,6 @@ func (s *TableService) GetAllPaginated(
 
 	// ================= Revision Facts Filter =================
 	var filterHasRevision, filterNoRevision bool
-
 	if vals, ok := filters["revision_facts"]; ok {
 		for _, v := range vals {
 			if v == "true" {
@@ -159,7 +155,6 @@ func (s *TableService) GetAllPaginated(
 			}
 		}
 	}
-
 	if filterHasRevision && filterNoRevision {
 		filterHasRevision = false
 		filterNoRevision = false
@@ -170,7 +165,6 @@ func (s *TableService) GetAllPaginated(
 
 	for _, id := range allIDs {
 
-		// missing facts
 		missingTotal := 0
 		outlierTotal := 0
 		revisionTotal := 0
@@ -180,9 +174,7 @@ func (s *TableService) GetAllPaginated(
 			revisionTotal = mf.Summary.TotalRevisions
 		}
 
-		// ==== Apply filters ====
-
-		// missing_facts filter
+		// Filtering rules
 		if filterHasMissing && missingTotal == 0 {
 			continue
 		}
@@ -190,7 +182,6 @@ func (s *TableService) GetAllPaginated(
 			continue
 		}
 
-		// outlier_facts filter
 		if filterHasOutlier && outlierTotal == 0 {
 			continue
 		}
@@ -198,7 +189,6 @@ func (s *TableService) GetAllPaginated(
 			continue
 		}
 
-		// revision_facts filter
 		if filterHasRevision && revisionTotal == 0 {
 			continue
 		}
@@ -206,21 +196,57 @@ func (s *TableService) GetAllPaginated(
 			continue
 		}
 
-		// lolos semua filter
 		filteredIDs = append(filteredIDs, id)
 	}
 
-	// 5) Hitung total setelah filter
+	// ============== 5) Total setelah filter ==============
 	total := int64(len(filteredIDs))
 
-	// 6) Pagination in-memory
+	// ============== 5.5) Sorting Virtual Fields ==============
+	if sortBy == "missing_facts" || sortBy == "outlier_facts" || sortBy == "revision_facts" {
+		sort.Slice(filteredIDs, func(i, j int) bool {
+			a := insightFactsMap[filteredIDs[i]]
+			b := insightFactsMap[filteredIDs[j]]
+
+			var va, vb int
+
+			switch sortBy {
+			case "missing_facts":
+				if a != nil {
+					va = a.Summary.TotalMissings
+				}
+				if b != nil {
+					vb = b.Summary.TotalMissings
+				}
+			case "outlier_facts":
+				if a != nil {
+					va = a.Summary.TotalOutliers
+				}
+				if b != nil {
+					vb = b.Summary.TotalOutliers
+				}
+			case "revision_facts":
+				if a != nil {
+					va = a.Summary.TotalRevisions
+				}
+				if b != nil {
+					vb = b.Summary.TotalRevisions
+				}
+			}
+
+			if sortOrder == "desc" {
+				return va > vb
+			}
+			return va < vb
+		})
+	}
+
+	// ============== 6) Pagination in-memory ==============
 	start := (page - 1) * perPage
 	if start >= len(filteredIDs) {
 		return []*dto.TableListResponse{}, total, nil
 	}
-
 	end := min(start+perPage, len(filteredIDs))
-
 	pagedIDs := filteredIDs[start:end]
 
 	// 7) Load detail hanya untuk ID yang tampil
@@ -242,10 +268,8 @@ func (s *TableService) GetAllPaginated(
 			if mf, ok := insightFactsMap[id]; ok {
 				resp.InsightFactsSummary = &mf.Summary
 			}
-
 			responses = append(responses, resp)
 		}
-
 	}
 
 	return responses, total, nil
