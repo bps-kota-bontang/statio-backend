@@ -13,6 +13,16 @@ type FactRepositoryImpl struct {
 	db *gorm.DB
 }
 
+// CommitByTable implements FactRepository.
+func (r *FactRepositoryImpl) CommitByTable(tableID string) error {
+	return r.db.Model(&models.Fact{}).
+		Where("table_id = ?", tableID).
+		Updates(map[string]any{
+			"old_value":  gorm.Expr("value"), // ambil dari kolom lain
+			"is_outlier": gorm.Expr("FALSE"), // ekspresi SQL
+		}).Error
+}
+
 // FindAllByTableAndDimensionValues implements FactRepository.
 func (r *FactRepositoryImpl) FindAllByTableAndDimensionValues(tableID string, dimValueIDs []string) ([]*models.Fact, error) {
 	var facts []*models.Fact

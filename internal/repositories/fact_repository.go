@@ -22,4 +22,5 @@ type FactRepository interface {
 	CountRevisionsForTables(tableIDs []string) (map[string]int, error)
 	UpdateFact(fact *models.Fact) error
 	ResetOutliersByTable(tableID string) error
+	CommitByTable(tableID string) error
 }

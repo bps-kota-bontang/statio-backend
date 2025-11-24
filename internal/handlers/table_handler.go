@@ -565,7 +565,7 @@ func (h *TableHandler) AnalyzeTables(c *fiber.Ctx) error {
 	if !utils.IsAdmin(roles) {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"data":    nil,
-			"message": "You are not authorized to create tables",
+			"message": "You are not authorized to analyze tables",
 		})
 	}
 
@@ -594,5 +594,65 @@ func (h *TableHandler) AnalyzeTables(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"data":    nil,
 		"message": "Tables analysis started successfully",
+	})
+}
+
+func (h *TableHandler) CommitTable(c *fiber.Ctx) error {
+	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to commit table",
+		})
+	}
+
+	if err := h.service.CommitTable(id); err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    nil,
+		"message": "Table committed successfully",
+	})
+}
+
+func (h *TableHandler) CommitTables(c *fiber.Ctx) error {
+	roles := c.Locals("roles").([]string)
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to commit tables",
+		})
+	}
+
+	var payload dto.CommitTablesRequest
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid request payload",
+		})
+	}
+
+	if err := h.validate.Struct(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	if err := h.service.CommitTables(payload.TableIDs); err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    nil,
+		"message": "Tables committed successfully",
 	})
 }

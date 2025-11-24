@@ -622,3 +622,26 @@ func (s *TableService) AnalyzeTables(tableIDs []string) error {
 
 	return nil
 }
+
+func (s *TableService) CommitTable(tableID string) error {
+	table, err := s.tableRepo.FindBaseByID(tableID)
+	if err != nil || table == nil {
+		return fmt.Errorf("table not found")
+	}
+
+	if table.Status != "finalized" {
+		return fmt.Errorf("only finalized tables can be committed")
+	}
+
+	return s.factSvc.CommitFactsForTable(table)
+}
+
+func (s *TableService) CommitTables(tableIDs []string) error {
+	for _, tableID := range tableIDs {
+		if err := s.CommitTable(tableID); err != nil {
+			log.Printf("failed to commit facts for table %s: %v", tableID, err)
+		}
+	}
+
+	return nil
+}

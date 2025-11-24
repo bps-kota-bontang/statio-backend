@@ -74,3 +74,7 @@ type UpdateTableStatusRequest struct {
 type AnalyzeTablesRequest struct {
 	TableIDs []string `json:"table_ids" validate:"required,min=1,dive,required"`
 }
+
+type CommitTablesRequest struct {
+	TableIDs []string `json:"table_ids" validate:"required,min=1,dive,required"`
+}
