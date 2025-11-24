@@ -13,7 +13,7 @@ type IndicatorRepositoryImpl struct {
 // FindAllNames implements IndicatorRepository.
 func (i *IndicatorRepositoryImpl) FindAllNames() ([]*models.Indicator, error) {
 	var names []*models.Indicator
-	if err := i.db.Select("name").Find(&names).Error; err != nil {
+	if err := i.db.Select("name").Order("name ASC").Find(&names).Error; err != nil {
 		return nil, err
 	}
 	return names, nil
@@ -22,7 +22,7 @@ func (i *IndicatorRepositoryImpl) FindAllNames() ([]*models.Indicator, error) {
 // FindAllMeasures implements IndicatorRepository.
 func (i *IndicatorRepositoryImpl) FindAllMeasures() ([]*models.Indicator, error) {
 	var measures []*models.Indicator
-	if err := i.db.Select("measure").Distinct("measure").Find(&measures).Error; err != nil {
+	if err := i.db.Select("measure").Distinct("measure").Order("measure ASC").Find(&measures).Error; err != nil {
 		return nil, err
 	}
 	return measures, nil
@@ -31,7 +31,7 @@ func (i *IndicatorRepositoryImpl) FindAllMeasures() ([]*models.Indicator, error)
 // FindAllUnits implements IndicatorRepository.
 func (i *IndicatorRepositoryImpl) FindAllUnits() ([]*models.Indicator, error) {
 	var units []*models.Indicator
-	if err := i.db.Select("unit").Distinct("unit").Where("unit IS NOT NULL").Find(&units).Error; err != nil {
+	if err := i.db.Select("unit").Distinct("unit").Order("unit ASC").Where("unit IS NOT NULL").Find(&units).Error; err != nil {
 		return nil, err
 	}
 	return units, nil

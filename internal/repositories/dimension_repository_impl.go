@@ -24,7 +24,10 @@ func (r *DimensionRepositoryImpl) AreValidIDs(ids []string) (bool, error) {
 // FindAllNames implements DimensionRepository.
 func (i *DimensionRepositoryImpl) FindAllNames() ([]*models.Dimension, error) {
 	var dimensions []*models.Dimension
-	if err := i.db.Select("name").Find(&dimensions).Error; err != nil {
+	if err := i.db.
+		Select("name").
+		Order("name ASC").
+		Find(&dimensions).Error; err != nil {
 		return nil, err
 	}
 	return dimensions, nil

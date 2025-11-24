@@ -38,7 +38,9 @@ func (o *OrganizationRepositoryImpl) Update(org *models.Organization) error {
 // FindAll implements OrganizationRepository.
 func (o *OrganizationRepositoryImpl) FindAll() ([]*models.Organization, error) {
 	var organizations []*models.Organization
-	if err := o.db.Find(&organizations).Error; err != nil {
+	if err := o.db.
+		Order("name ASC").
+		Find(&organizations).Error; err != nil {
 		return nil, err
 	}
 	return organizations, nil
