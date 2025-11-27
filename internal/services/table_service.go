@@ -624,16 +624,20 @@ func (s *TableService) AnalyzeTables(tableIDs []string) error {
 }
 
 func (s *TableService) CommitTable(tableID string) error {
-	table, err := s.tableRepo.FindBaseByID(tableID)
-	if err != nil || table == nil {
-		return fmt.Errorf("table not found")
+	payload, err := json.Marshal(&dto.CommitFactPayload{
+		TableID: tableID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal analyze fact payload: %w", err)
 	}
 
-	if table.Status != "finalized" {
-		return fmt.Errorf("only finalized tables can be committed")
+	task := asynq.NewTask("fact:commit", payload)
+
+	if _, err := s.asynqClient.Enqueue(task); err != nil {
+		return fmt.Errorf("failed to enqueue commit fact task: %w", err)
 	}
 
-	return s.factSvc.CommitFactsForTable(table)
+	return nil
 }
 
 func (s *TableService) CommitTables(tableIDs []string) error {

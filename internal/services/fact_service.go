@@ -426,6 +426,6 @@ func (s *FactService) GetFactsByTableID(tableID string, dimValueIDs []string) ([
 	return responses, nil
 }
 
-func (s *FactService) CommitFactsForTable(table *models.Table) error {
-	return s.factRepo.CommitByTable(table.ID)
+func (s *FactService) CommitFacts(tableID string) error {
+	return s.factRepo.CommitByTable(tableID)
 }

@@ -61,3 +61,25 @@ func (t *FactTask) AnalyzeFacts(ctx context.Context, task *asynq.Task) error {
 
 	return nil
 }
+
+func (t *FactTask) CommitFacts(ctx context.Context, task *asynq.Task) error {
+	log.Println("Commit facts started")
+
+	var payload dto.CommitFactPayload
+
+	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
+		return err
+	}
+
+	log.Printf("Committing facts for table ID: %s", payload.TableID)
+
+	// Call the service method to commit facts
+	if err := t.services.CommitFacts(payload.TableID); err != nil {
+		log.Printf("Error committing facts for table ID %s: %v", payload.TableID, err)
+		return nil
+	}
+
+	log.Printf("Successfully committed facts for table ID: %s", payload.TableID)
+
+	return nil
+}

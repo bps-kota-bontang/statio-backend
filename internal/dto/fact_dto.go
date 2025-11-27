@@ -57,3 +57,7 @@ type UnanalyzeFactPayload struct {
 type AnalyzeFactPayload struct {
 	TableID string `json:"table_id"`
 }
+
+type CommitFactPayload struct {
+	TableID string `json:"table_id"`
+}
