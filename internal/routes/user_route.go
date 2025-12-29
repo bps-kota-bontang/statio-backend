@@ -10,4 +10,9 @@ import (
 func RegisterUserRoutes(router fiber.Router, handler *handlers.UserHandler) {
 	user := router.Group("/users")
 	user.Get("/me", handler.Me)
+	user.Get("/", handler.GetAllUsers)
+	user.Get("/:id", handler.GetUserByID)
+	user.Post("/", handler.CreateUser)
+	user.Put("/:id", handler.UpdateUser)
+	user.Delete("/:id", handler.DeleteUser)
 }
