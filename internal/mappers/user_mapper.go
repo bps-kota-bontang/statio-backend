@@ -27,6 +27,7 @@ func ToUserModel(input *dto.CreateUserRequest) *models.User {
 		Email:          input.Email,
 		OrganizationID: &input.OrganizationID,
 		Roles:          input.Roles,
+		InviteToken:    input.InviteToken,
 	}
 }
 
@@ -45,5 +46,9 @@ func ApplyUserUpdateFromRequest(user *models.User, req *dto.UpdateUserRequest) {
 
 	if req.Roles != nil {
 		user.Roles = *req.Roles
+	}
+
+	if req.InviteToken != nil {
+		user.InviteToken = req.InviteToken
 	}
 }

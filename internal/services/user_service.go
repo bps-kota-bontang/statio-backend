@@ -160,3 +160,20 @@ func (s *UserService) UpdateUser(id string, req *dto.UpdateUserRequest) error {
 func (s *UserService) DeleteUser(id string) error {
 	return s.userRepo.Delete(id)
 }
+
+func (s *UserService) GetUserInviteLink(id string) (*dto.UserInviteLinkResponse, error) {
+	user, err := s.userRepo.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if user.InviteToken == nil {
+		return nil, fmt.Errorf("user does not have an invite token")
+	}
+
+	inviteLink := fmt.Sprintf("https://statio.bpsbontang.com/login?invite_token=%s", *user.InviteToken)
+
+	return &dto.UserInviteLinkResponse{
+		InviteLink: inviteLink,
+	}, nil
+}

@@ -208,3 +208,28 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 	c.Status(204)
 	return nil
 }
+
+func (h *UserHandler) GetUserInviteLink(c *fiber.Ctx) error {
+	roles := c.Locals("roles").([]string)
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to view invite link",
+		})
+	}
+
+	id := c.Params("id")
+
+	inviteLinkResp, err := h.service.GetUserInviteLink(id)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.Status(200).JSON(fiber.Map{
+		"data":    inviteLinkResp,
+		"message": "User invite link retrieved successfully",
+	})
+}
