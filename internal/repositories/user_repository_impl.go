@@ -11,6 +11,24 @@ type UserRepositoryImpl struct {
 	db *gorm.DB
 }
 
+// FindByEmailOrUsername implements [UserRepository].
+func (u *UserRepositoryImpl) FindByEmailOrUsername(identifier string) (*models.User, error) {
+	var user *models.User
+	if err := u.db.Where("email ILIKE ? OR username ILIKE ?", identifier, identifier).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+// FindByUsername implements [UserRepository].
+func (u *UserRepositoryImpl) FindByUsername(username string) (*models.User, error) {
+	var user *models.User
+	if err := u.db.Where("username ILIKE ?", username).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
 // FindByIDIncludePassword implements UserRepository.
 func (u *UserRepositoryImpl) FindByIDIncludePassword(id string) (*models.User, error) {
 	var user *models.User

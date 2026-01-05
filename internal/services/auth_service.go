@@ -23,7 +23,7 @@ func NewAuthService(userService *UserService, jwtService *JWTService, bpsService
 }
 
 func (s *AuthService) Login(payload *dto.LoginRequest) (*dto.LoginResponse, error) {
-	user, err := s.userService.GetUserByEmail(payload.Email)
+	user, err := s.userService.GetUserByEmailOrUsername(payload.Identifier)
 	if err != nil {
 		return nil, fmt.Errorf("user not found")
 	}

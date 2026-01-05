@@ -25,6 +25,14 @@ func (s *UserService) GetUserByEmail(email string) (*models.User, error) {
 	return s.userRepo.FindByEmail(email)
 }
 
+func (s *UserService) GetUserByUsername(username string) (*models.User, error) {
+	return s.userRepo.FindByUsername(username)
+}
+
+func (s *UserService) GetUserByEmailOrUsername(identifier string) (*models.User, error) {
+	return s.userRepo.FindByEmailOrUsername(identifier)
+}
+
 func (s *UserService) GetUserByID(id string) (*dto.UserResponse, error) {
 	user, err := s.userRepo.FindByID(id)
 	if err != nil {
@@ -81,9 +89,16 @@ func (s *UserService) GetAllPaginated(
 }
 
 func (s *UserService) CreateUser(req *dto.CreateUserRequest) error {
-	userExisting, _ := s.userRepo.FindByEmail(req.Email)
+	var userExisting *models.User
+
+	userExisting, _ = s.userRepo.FindByEmail(req.Email)
 	if userExisting != nil {
-		return fmt.Errorf("user already exists")
+		return fmt.Errorf("email is already taken")
+	}
+
+	userExisting, _ = s.userRepo.FindByUsername(req.Username)
+	if userExisting != nil {
+		return fmt.Errorf("username is already taken")
 	}
 
 	passwordHashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
@@ -106,6 +121,13 @@ func (s *UserService) UpdateUser(id string, req *dto.UpdateUserRequest) error {
 		userExisting, _ := s.userRepo.FindByEmail(*req.Email)
 		if userExisting != nil && userExisting.ID != id {
 			return fmt.Errorf("email is already in use by another user")
+		}
+	}
+
+	if req.Username != nil {
+		userExisting, _ := s.userRepo.FindByUsername(*req.Username)
+		if userExisting != nil && userExisting.ID != id {
+			return fmt.Errorf("username is already in use by another user")
 		}
 	}
 

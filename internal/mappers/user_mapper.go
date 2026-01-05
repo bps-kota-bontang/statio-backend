@@ -8,6 +8,7 @@ import (
 func ToUserResponse(user *models.User) *dto.UserResponse {
 	resp := dto.UserResponse{
 		ID:             user.ID,
+		Username:       user.Username,
 		Email:          user.Email,
 		OrganizationID: user.OrganizationID,
 		Roles:          user.Roles,
@@ -22,6 +23,7 @@ func ToUserResponse(user *models.User) *dto.UserResponse {
 
 func ToUserModel(input *dto.CreateUserRequest) *models.User {
 	return &models.User{
+		Username:       input.Username,
 		Email:          input.Email,
 		OrganizationID: &input.OrganizationID,
 		Roles:          input.Roles,
@@ -29,6 +31,10 @@ func ToUserModel(input *dto.CreateUserRequest) *models.User {
 }
 
 func ApplyUserUpdateFromRequest(user *models.User, req *dto.UpdateUserRequest) {
+	if req.Username != nil {
+		user.Username = *req.Username
+	}
+
 	if req.Email != nil {
 		user.Email = *req.Email
 	}
