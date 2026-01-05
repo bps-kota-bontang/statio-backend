@@ -15,5 +15,5 @@ func RegisterUserRoutes(router fiber.Router, handler *handlers.UserHandler) {
 	user.Get("/:id", handler.GetUserByID)
 	user.Put("/:id", handler.UpdateUser)
 	user.Delete("/:id", handler.DeleteUser)
-	user.Post("/:id/invite-link", handler.GetUserInviteLink)
+	user.Get("/:id/invite-link", handler.GetUserInviteLink)
 }
