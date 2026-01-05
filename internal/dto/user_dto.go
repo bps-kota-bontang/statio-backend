@@ -7,6 +7,7 @@ type UserResponse struct {
 	OrganizationID *string               `json:"organization_id"`
 	Roles          []string              `json:"roles"`
 	Organization   *OrganizationResponse `json:"organization,omitempty"`
+	HasInviteLink  bool                  `json:"has_invite_link"`
 }
 
 type UserInviteLinkResponse struct {

@@ -12,6 +12,7 @@ func ToUserResponse(user *models.User) *dto.UserResponse {
 		Email:          user.Email,
 		OrganizationID: user.OrganizationID,
 		Roles:          user.Roles,
+		HasInviteLink:  user.InviteToken != nil,
 	}
 
 	if user.Organization != nil {
