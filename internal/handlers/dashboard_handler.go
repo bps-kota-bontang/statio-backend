@@ -41,3 +41,78 @@ func (h *DashboardHandler) GetDashboardStatistics(c *fiber.Ctx) error {
 		"message": "Dashboard statistics fetched successfully",
 	})
 }
+
+func (h *DashboardHandler) GetOrganizationCompletion(c *fiber.Ctx) error {
+	roles := c.Locals("roles").([]string)
+
+	// Only admins can view this data
+	if !utils.IsAdmin(roles) {
+		return c.Status(403).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Unauthorized access",
+		})
+	}
+
+	data, err := h.service.GetOrganizationCompletion()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    data,
+		"message": "Organization completion data fetched successfully",
+	})
+}
+
+func (h *DashboardHandler) GetTopPerformers(c *fiber.Ctx) error {
+	roles := c.Locals("roles").([]string)
+
+	// Only admins can view this data
+	if !utils.IsAdmin(roles) {
+		return c.Status(403).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Unauthorized access",
+		})
+	}
+
+	data, err := h.service.GetTopPerformers()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    data,
+		"message": "Top performers data fetched successfully",
+	})
+}
+
+func (h *DashboardHandler) GetOrganizationsNeedAttention(c *fiber.Ctx) error {
+	roles := c.Locals("roles").([]string)
+
+	// Only admins can view this data
+	if !utils.IsAdmin(roles) {
+		return c.Status(403).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Unauthorized access",
+		})
+	}
+
+	data, err := h.service.GetOrganizationsNeedAttention()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    data,
+		"message": "Organizations need attention data fetched successfully",
+	})
+}

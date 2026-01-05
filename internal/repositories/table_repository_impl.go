@@ -22,7 +22,7 @@ func (r *TableRepositoryImpl) FindTablesBase(filter *dto.FilterTablesRequest) ([
 		query = query.Where("organization_id = ?", *filter.OrganizationID)
 	}
 
-	if err := query.Find(&tables).Error; err != nil {
+	if err := query.Preload("Organization").Find(&tables).Error; err != nil {
 		return nil, err
 	}
 
