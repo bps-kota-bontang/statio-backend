@@ -11,6 +11,15 @@ type UserRepositoryImpl struct {
 	db *gorm.DB
 }
 
+// FindByInviteToken implements [UserRepository].
+func (u *UserRepositoryImpl) FindByInviteToken(inviteToken string) (*models.User, error) {
+	var user *models.User
+	if err := u.db.Where("invite_token = ?", inviteToken).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
 // FindByEmailOrUsername implements [UserRepository].
 func (u *UserRepositoryImpl) FindByEmailOrUsername(identifier string) (*models.User, error) {
 	var user *models.User

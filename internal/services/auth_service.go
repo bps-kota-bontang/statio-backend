@@ -91,3 +91,26 @@ func (s *AuthService) LoginBPS(token string) (*dto.LoginResponse, error) {
 		RefreshToken: refreshToken,
 	}, nil
 }
+
+func (s *AuthService) LoginInviteToken(inviteToken string) (*dto.LoginResponse, error) {
+	user, err := s.userService.GetUserByInviteToken(inviteToken)
+	if err != nil {
+		return nil, fmt.Errorf("invalid invite token")
+	}
+
+	// ✅ generate tokens
+	accessToken, err := s.jwtService.GenerateAccessToken(user.ID, user.Roles, user.OrganizationID)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken, err := s.jwtService.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
+}

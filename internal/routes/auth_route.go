@@ -15,4 +15,5 @@ func RegisterAuthRoutes(router fiber.Router, handler *handlers.AuthHandler, JWTM
 	auth.Post("/logout", JWTMiddleware.Protected(), handler.Logout)
 	auth.Get("/sso", handler.RedirectSSO)
 	auth.Post("/sso", handler.LoginSSO)
+	auth.Post("/invite", handler.LoginInviteToken)
 }

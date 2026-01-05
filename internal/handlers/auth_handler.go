@@ -221,3 +221,58 @@ func (h *AuthHandler) LoginSSO(c *fiber.Ctx) error {
 		"message": "Login successful",
 	})
 }
+
+func (h *AuthHandler) LoginInviteToken(c *fiber.Ctx) error {
+	var payload dto.LoginInviteTokenRequest
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid request body",
+		})
+	}
+
+	if err := h.validate.Struct(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	if payload.InviteToken == "" {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid invite token",
+		})
+	}
+
+	tokens, err := h.service.LoginInviteToken(payload.InviteToken)
+	if err != nil {
+		return c.Status(401).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	isProd := h.appConfig.AppEnv == "production"
+
+	cookie := &fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    tokens.RefreshToken,
+		Path:     "/",
+		HTTPOnly: true,
+		Secure:   isProd,
+		SameSite: "None",
+		MaxAge:   7 * 24 * 60 * 60,
+	}
+
+	if isProd {
+		cookie.Domain = ".bpsbontang.com"
+	}
+
+	c.Cookie(cookie)
+
+	return c.JSON(fiber.Map{
+		"data":    fiber.Map{"access_token": tokens.AccessToken},
+		"message": "Login successful",
+	})
+}

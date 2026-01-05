@@ -33,6 +33,10 @@ func (s *UserService) GetUserByEmailOrUsername(identifier string) (*models.User,
 	return s.userRepo.FindByEmailOrUsername(identifier)
 }
 
+func (s *UserService) GetUserByInviteToken(inviteToken string) (*models.User, error) {
+	return s.userRepo.FindByInviteToken(inviteToken)
+}
+
 func (s *UserService) GetUserByID(id string) (*dto.UserResponse, error) {
 	user, err := s.userRepo.FindByID(id)
 	if err != nil {

@@ -6,6 +6,7 @@ type UserRepository interface {
 	FindByEmail(email string) (*models.User, error)
 	FindByUsername(username string) (*models.User, error)
 	FindByEmailOrUsername(identifier string) (*models.User, error)
+	FindByInviteToken(inviteToken string) (*models.User, error)
 	FindByID(id string) (*models.User, error)
 	FindByIDIncludePassword(id string) (*models.User, error)
 	FindAll() ([]models.User, error)

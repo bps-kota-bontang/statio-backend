@@ -14,3 +14,7 @@ type LoginSSORequest struct {
 	Token string `json:"token" validate:"required"`
 	State string `json:"state" validate:"required"`
 }
+
+type LoginInviteTokenRequest struct {
+	InviteToken string `json:"invite_token" validate:"required"`
+}
