@@ -68,7 +68,9 @@ func InitializeApp() (*container.AppContainer, error) {
 	organizationService := services.NewOrganizationService(organizationRepository, tableService)
 	organizationHandler := handlers.NewOrganizationHandler(organizationService, validate)
 	userHandler := handlers.NewUserHandler(userService, validate)
-	appContainer, err := app.NewFiberApp(appConfig, jwtMiddleware, authHandler, tableHandler, indicatorHandler, dimensionHandler, organizationHandler, userHandler)
+	dashboardService := services.NewDashboardService(tableService, factService)
+	dashboardHandler := handlers.NewDashboardHandler(dashboardService, validate)
+	appContainer, err := app.NewFiberApp(appConfig, jwtMiddleware, authHandler, tableHandler, indicatorHandler, dimensionHandler, organizationHandler, userHandler, dashboardHandler)
 	if err != nil {
 		return nil, err
 	}

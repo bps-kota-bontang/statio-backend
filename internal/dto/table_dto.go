@@ -78,3 +78,7 @@ type AnalyzeTablesRequest struct {
 type CommitTablesRequest struct {
 	TableIDs []string `json:"table_ids" validate:"required,min=1,dive,required"`
 }
+
+type FilterTablesRequest struct {
+	OrganizationID *string `json:"organization_id,omitempty"`
+}

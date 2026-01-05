@@ -40,18 +40,12 @@ func NewTableService(
 	}
 }
 
-func (s *TableService) GetAll() ([]*dto.TableListResponse, error) {
-	tables, err := s.tableRepo.FindAll()
-	if err != nil {
-		return nil, err
-	}
+func (s *TableService) GetTablesBase(
+	filter *dto.FilterTablesRequest,
+) ([]*models.Table, error) {
+	tables, err := s.tableRepo.FindTablesBase(filter)
 
-	responses := make([]*dto.TableListResponse, 0, len(tables))
-	for _, table := range tables {
-		responses = append(responses, mappers.ToTableListResponse(table))
-	}
-
-	return responses, nil
+	return tables, err
 }
 
 func (s *TableService) GetAllPaginated(

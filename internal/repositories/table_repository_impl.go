@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"statio/internal/dto"
 	"statio/internal/models"
 
 	"github.com/lib/pq"
@@ -9,6 +10,23 @@ import (
 
 type TableRepositoryImpl struct {
 	db *gorm.DB
+}
+
+// FindTablesBase implements [TableRepository].
+func (r *TableRepositoryImpl) FindTablesBase(filter *dto.FilterTablesRequest) ([]*models.Table, error) {
+	var tables []*models.Table
+
+	query := r.db.Model(&models.Table{})
+
+	if filter.OrganizationID != nil {
+		query = query.Where("organization_id = ?", *filter.OrganizationID)
+	}
+
+	if err := query.Find(&tables).Error; err != nil {
+		return nil, err
+	}
+
+	return tables, nil
 }
 
 // FindByIDs implements TableRepository.

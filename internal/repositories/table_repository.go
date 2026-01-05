@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"statio/internal/dto"
 	"statio/internal/models"
 
 	"gorm.io/gorm"
@@ -31,4 +32,5 @@ type TableRepository interface {
 	UpdateLabels(tableID string, labels []string) error
 	FindAllLabels() ([]*string, error)
 	FindByIDs(tableIDs []string) ([]*models.Table, error)
+	FindTablesBase(filter *dto.FilterTablesRequest) ([]*models.Table, error)
 }
