@@ -17,7 +17,7 @@ type UserInviteLinkResponse struct {
 type CreateUserRequest struct {
 	Username       string   `json:"username" validate:"required"`
 	Email          string   `json:"email" validate:"required,email"`
-	Password       string   `json:"password" validate:"required,min=8"`
+	Password       string   `json:"password" validate:"required"`
 	Roles          []string `json:"roles" validate:"required,min=1,dive,required"`
 	OrganizationID string   `json:"organization_id"`
 	InviteToken    *string  `json:"invite_token,omitempty"`
@@ -26,7 +26,7 @@ type CreateUserRequest struct {
 type UpdateUserRequest struct {
 	Username       *string   `json:"username,omitempty"`
 	Email          *string   `json:"email,omitempty" validate:"omitempty,email"`
-	Password       *string   `json:"password,omitempty" validate:"omitempty,min=8"`
+	Password       *string   `json:"password,omitempty" validate:"omitempty"`
 	Roles          *[]string `json:"roles,omitempty" validate:"omitempty,min=1,dive,required"`
 	OrganizationID *string   `json:"organization_id,omitempty"`
 	InviteToken    *string   `json:"invite_token,omitempty"`
