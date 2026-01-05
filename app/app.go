@@ -36,7 +36,7 @@ func NewFiberApp(
 	}
 
 	if isProd {
-		corsConfig.AllowOrigins = "https://statio.bpsbontang.com"
+		corsConfig.AllowOrigins = AppConfig.AppURL
 	} else {
 		corsConfig.AllowOrigins = "http://localhost:5173"
 	}

@@ -12,6 +12,7 @@ type AppConfig struct {
 	AppName string
 	AppEnv  string
 	AppPort string
+	AppURL  string
 }
 
 // LoadAppConfig membaca variabel lingkungan dan mengembalikan pointer ke AppConfig
@@ -33,14 +34,20 @@ func LoadAppConfig() (*AppConfig, error) {
 
 	appName := os.Getenv("APP_NAME")
 	appPort := os.Getenv("APP_PORT")
+	appURL := os.Getenv("APP_URL")
 
 	if appPort == "" {
 		appPort = "3000" // default port
+	}
+
+	if appURL == "" {
+		appURL = "https://statio.bpsbontang.com" // default app URL
 	}
 
 	return &AppConfig{
 		AppName: appName,
 		AppEnv:  appEnv,
 		AppPort: appPort,
+		AppURL:  appURL,
 	}, nil
 }

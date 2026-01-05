@@ -2,22 +2,29 @@ package services
 
 import (
 	"fmt"
+	"statio/config"
 	"statio/internal/dto"
 	"statio/internal/mappers"
 	"statio/internal/models"
 	"statio/internal/repositories"
+
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
-	userRepo repositories.UserRepository
+	AppConfig *config.AppConfig
+	userRepo  repositories.UserRepository
 }
 
-func NewUserService(userRepo repositories.UserRepository) *UserService {
+func NewUserService(
+	AppConfig *config.AppConfig,
+	userRepo repositories.UserRepository,
+) *UserService {
 	return &UserService{
-		userRepo: userRepo,
+		AppConfig: AppConfig,
+		userRepo:  userRepo,
 	}
 }
 
@@ -171,7 +178,7 @@ func (s *UserService) GetUserInviteLink(id string) (*dto.UserInviteLinkResponse,
 		return nil, fmt.Errorf("user does not have an invite token")
 	}
 
-	inviteLink := fmt.Sprintf("https://statio.bpsbontang.com/login?invite_token=%s", *user.InviteToken)
+	inviteLink := fmt.Sprintf("%s/login?invite_token=%s", s.AppConfig.AppURL, *user.InviteToken)
 
 	return &dto.UserInviteLinkResponse{
 		InviteLink: inviteLink,

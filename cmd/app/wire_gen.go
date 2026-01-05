@@ -40,7 +40,7 @@ func InitializeApp() (*container.AppContainer, error) {
 		return nil, err
 	}
 	userRepository := repositories.NewUserRepository(db)
-	userService := services.NewUserService(userRepository)
+	userService := services.NewUserService(appConfig, userRepository)
 	bpsService := services.NewBPSService()
 	authService := services.NewAuthService(userService, jwtService, bpsService)
 	validate := providers.NewValidator()
