@@ -26,7 +26,7 @@ func ToUserModel(input *dto.CreateUserRequest) *models.User {
 	return &models.User{
 		Username:       input.Username,
 		Email:          input.Email,
-		OrganizationID: &input.OrganizationID,
+		OrganizationID: input.OrganizationID,
 		Roles:          input.Roles,
 		InviteToken:    input.InviteToken,
 	}

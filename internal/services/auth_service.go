@@ -28,8 +28,12 @@ func (s *AuthService) Login(payload *dto.LoginRequest) (*dto.LoginResponse, erro
 		return nil, fmt.Errorf("user not found")
 	}
 
+	if user.Password == nil {
+		return nil, fmt.Errorf("login method with password is not available for this user")
+	}
+
 	// ✅ bandingkan hashed password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(payload.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(payload.Password)); err != nil {
 		return nil, fmt.Errorf("invalid credentials")
 	}
 

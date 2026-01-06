@@ -112,13 +112,16 @@ func (s *UserService) CreateUser(req *dto.CreateUserRequest) error {
 		return fmt.Errorf("username is already taken")
 	}
 
-	passwordHashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
 	user := mappers.ToUserModel(req)
-	user.Password = string(passwordHashed)
+
+	if req.Password != nil {
+		passwordHashed, err := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		passwordStr := string(passwordHashed)
+		user.Password = &passwordStr
+	}
 
 	if err := s.userRepo.Create(user); err != nil {
 		return err
@@ -154,7 +157,8 @@ func (s *UserService) UpdateUser(id string, req *dto.UpdateUserRequest) error {
 		if err != nil {
 			return err
 		}
-		user.Password = string(passwordHashed)
+		passwordStr := string(passwordHashed)
+		user.Password = &passwordStr
 	}
 
 	if err := s.userRepo.Update(user); err != nil {
