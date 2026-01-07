@@ -9,10 +9,11 @@ import (
 
 // AppConfig menyimpan konfigurasi aplikasi
 type AppConfig struct {
-	AppName string
-	AppEnv  string
-	AppPort string
-	AppURL  string
+	AppName  string
+	AppEnv   string
+	AppPort  string
+	AppURL   string
+	AppBuild string
 }
 
 // LoadAppConfig membaca variabel lingkungan dan mengembalikan pointer ke AppConfig
@@ -35,9 +36,14 @@ func LoadAppConfig() (*AppConfig, error) {
 	appName := os.Getenv("APP_NAME")
 	appPort := os.Getenv("APP_PORT")
 	appURL := os.Getenv("APP_URL")
+	appBuild := os.Getenv("APP_BUILD")
 
 	if appPort == "" {
 		appPort = "3000" // default port
+	}
+
+	if appBuild == "" {
+		appBuild = "development" // default build
 	}
 
 	if appURL == "" {

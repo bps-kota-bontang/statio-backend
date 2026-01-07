@@ -30,6 +30,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o statio-worke
 # =========================
 FROM alpine:3.22
 
+# build hash or commit info
+ARG BUILD_HASH
+ENV APP_BUILD=${BUILD_HASH}
+
 # Install SSL certificates
 RUN apk add --no-cache ca-certificates
 

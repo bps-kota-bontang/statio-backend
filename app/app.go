@@ -44,6 +44,14 @@ func NewFiberApp(
 
 	App.Use(cors.New(corsConfig))
 
+	App.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("API Statio (Build: " + AppConfig.AppBuild + ")")
+	})
+
+	App.Get("/health", func(c *fiber.Ctx) error {
+		return c.SendString("OK")
+	})
+
 	api := App.Group("/api")
 	apiV1 := api.Group("/v1")
 
