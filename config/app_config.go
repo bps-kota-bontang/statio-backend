@@ -51,9 +51,10 @@ func LoadAppConfig() (*AppConfig, error) {
 	}
 
 	return &AppConfig{
-		AppName: appName,
-		AppEnv:  appEnv,
-		AppPort: appPort,
-		AppURL:  appURL,
+		AppName:  appName,
+		AppEnv:   appEnv,
+		AppPort:  appPort,
+		AppURL:   appURL,
+		AppBuild: appBuild,
 	}, nil
 }
