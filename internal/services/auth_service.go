@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"statio/internal/dto"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -100,6 +101,11 @@ func (s *AuthService) LoginInviteToken(inviteToken string) (*dto.LoginResponse, 
 	user, err := s.userService.GetUserByInviteToken(inviteToken)
 	if err != nil {
 		return nil, fmt.Errorf("invalid invite token")
+	}
+
+	if user.InviteTokenExpiresAt != nil &&
+		time.Now().UTC().After(*user.InviteTokenExpiresAt) {
+		return nil, fmt.Errorf("invite token has expired")
 	}
 
 	// ✅ generate tokens
