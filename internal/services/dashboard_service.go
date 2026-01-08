@@ -9,8 +9,8 @@ import (
 
 var (
 	// Collection period dates
-	CollectionStartDate = time.Date(2026, 1, 12, 0, 0, 0, 0, time.UTC)
-	CollectionEndDate   = time.Date(2026, 2, 13, 0, 0, 0, 0, time.UTC)
+	CollectionStartDate = time.Date(2026, 1, 8, 0, 0, 0, 0, time.UTC)
+	CollectionEndDate   = time.Date(2026, 1, 30, 0, 0, 0, 0, time.UTC)
 )
 
 type DashboardService struct {
