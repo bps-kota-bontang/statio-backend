@@ -3,7 +3,7 @@ package dto
 type UserResponse struct {
 	ID             string                `json:"id"`
 	Username       string                `json:"username"`
-	Email          string                `json:"email"`
+	Email          *string               `json:"email"`
 	OrganizationID *string               `json:"organization_id"`
 	Roles          []string              `json:"roles"`
 	Organization   *OrganizationResponse `json:"organization,omitempty"`
@@ -16,7 +16,7 @@ type UserInviteLinkResponse struct {
 
 type CreateUserRequest struct {
 	Username       string   `json:"username" validate:"required"`
-	Email          string   `json:"email" validate:"required,email"`
+	Email          *string  `json:"email,omitempty" validate:"omitempty,email"`
 	Password       *string  `json:"password,omitempty"`
 	Roles          []string `json:"roles" validate:"required,min=1,dive,required"`
 	OrganizationID *string  `json:"organization_id,omitempty"`

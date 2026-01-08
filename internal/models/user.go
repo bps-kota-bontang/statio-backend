@@ -10,7 +10,7 @@ import (
 type User struct {
 	ID                   string         `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	Username             string         `gorm:"type:text;unique;not null"`
-	Email                string         `gorm:"type:text;unique;not null"`
+	Email                *string        `gorm:"type:text;unique"`
 	Password             *string        `gorm:"type:text"`
 	OrganizationID       *string        `gorm:"type:uuid;index"`
 	Organization         *Organization  `gorm:"foreignKey:OrganizationID;constraint:OnDelete:CASCADE"`

@@ -102,9 +102,11 @@ func (s *UserService) GetAllPaginated(
 func (s *UserService) CreateUser(req *dto.CreateUserRequest) error {
 	var userExisting *models.User
 
-	userExisting, _ = s.userRepo.FindByEmail(req.Email)
-	if userExisting != nil {
-		return fmt.Errorf("email is already taken")
+	if req.Email != nil {
+		userExisting, _ = s.userRepo.FindByEmail(*req.Email)
+		if userExisting != nil {
+			return fmt.Errorf("email is already taken")
+		}
 	}
 
 	userExisting, _ = s.userRepo.FindByUsername(req.Username)

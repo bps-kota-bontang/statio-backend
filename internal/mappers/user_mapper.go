@@ -38,7 +38,7 @@ func ApplyUserUpdateFromRequest(user *models.User, req *dto.UpdateUserRequest) {
 	}
 
 	if req.Email != nil {
-		user.Email = *req.Email
+		user.Email = req.Email
 	}
 
 	if req.OrganizationID != nil {
