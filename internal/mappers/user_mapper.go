@@ -13,6 +13,7 @@ func ToUserResponse(user *models.User) *dto.UserResponse {
 		OrganizationID: user.OrganizationID,
 		Roles:          user.Roles,
 		HasInviteLink:  user.InviteToken != nil,
+		HasPassword:    user.Password != nil,
 	}
 
 	if user.Organization != nil {
@@ -33,21 +34,10 @@ func ToUserModel(input *dto.CreateUserRequest) *models.User {
 }
 
 func ApplyUserUpdateFromRequest(user *models.User, req *dto.UpdateUserRequest) {
-	if req.Username != nil {
-		user.Username = *req.Username
-	}
-
-	if req.Email != nil {
-		user.Email = req.Email
-	}
-
-	if req.OrganizationID != nil {
-		user.OrganizationID = req.OrganizationID
-	}
-
-	if req.Roles != nil {
-		user.Roles = *req.Roles
-	}
+	user.Username = req.Username
+	user.Email = req.Email
+	user.OrganizationID = req.OrganizationID
+	user.Roles = req.Roles
 
 	if req.InviteToken != nil {
 		user.InviteToken = req.InviteToken

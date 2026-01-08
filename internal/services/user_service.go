@@ -45,7 +45,7 @@ func (s *UserService) GetUserByInviteToken(inviteToken string) (*models.User, er
 }
 
 func (s *UserService) GetUserByID(id string) (*dto.UserResponse, error) {
-	user, err := s.userRepo.FindByID(id)
+	user, err := s.userRepo.FindByIDIncludePassword(id)
 	if err != nil {
 		return nil, err
 	}
@@ -140,11 +140,9 @@ func (s *UserService) UpdateUser(id string, req *dto.UpdateUserRequest) error {
 		}
 	}
 
-	if req.Username != nil {
-		userExisting, _ := s.userRepo.FindByUsername(*req.Username)
-		if userExisting != nil && userExisting.ID != id {
-			return fmt.Errorf("username is already in use by another user")
-		}
+	userExisting, _ := s.userRepo.FindByUsername(req.Username)
+	if userExisting != nil && userExisting.ID != id {
+		return fmt.Errorf("username is already in use by another user")
 	}
 
 	user, err := s.userRepo.FindByIDIncludePassword(id)

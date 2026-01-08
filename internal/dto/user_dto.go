@@ -8,6 +8,7 @@ type UserResponse struct {
 	Roles          []string              `json:"roles"`
 	Organization   *OrganizationResponse `json:"organization,omitempty"`
 	HasInviteLink  bool                  `json:"has_invite_link"`
+	HasPassword    bool                  `json:"has_password"`
 }
 
 type UserInviteLinkResponse struct {
@@ -24,10 +25,10 @@ type CreateUserRequest struct {
 }
 
 type UpdateUserRequest struct {
-	Username       *string   `json:"username,omitempty"`
-	Email          *string   `json:"email,omitempty" validate:"omitempty,email"`
-	Password       *string   `json:"password,omitempty" validate:"omitempty"`
-	Roles          *[]string `json:"roles,omitempty" validate:"omitempty,min=1,dive,required"`
-	OrganizationID *string   `json:"organization_id,omitempty"`
-	InviteToken    *string   `json:"invite_token,omitempty"`
+	Username       string   `json:"username" validate:"required"`
+	Email          *string  `json:"email,omitempty" validate:"omitempty,email"`
+	Password       *string  `json:"password,omitempty"`
+	Roles          []string `json:"roles" validate:"required,min=1,dive,required"`
+	OrganizationID *string  `json:"organization_id,omitempty"`
+	InviteToken    *string  `json:"invite_token,omitempty"`
 }
