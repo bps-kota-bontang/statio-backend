@@ -38,6 +38,70 @@ func (h *UserHandler) Me(c *fiber.Ctx) error {
 	})
 }
 
+func (h *UserHandler) UpdateMyEmail(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+
+	var req dto.UpdateMyEmailRequest
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid request payload",
+		})
+	}
+
+	if err := h.validate.Struct(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	if err := h.service.UpdateMyEmail(userID, &req); err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.Status(200).JSON(fiber.Map{
+		"data":    nil,
+		"message": "Email updated successfully",
+	})
+}
+
+func (h *UserHandler) UpdateMyPassword(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+
+	var req dto.UpdateMyPasswordRequest
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid request payload",
+		})
+	}
+
+	if err := h.validate.Struct(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	if err := h.service.UpdateMyPassword(userID, &req); err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.Status(200).JSON(fiber.Map{
+		"data":    nil,
+		"message": "Password updated successfully",
+	})
+}
+
 func (h *UserHandler) GetAllUsers(c *fiber.Ctx) error {
 	roles := c.Locals("roles").([]string)
 	if !utils.IsAdmin(roles) {

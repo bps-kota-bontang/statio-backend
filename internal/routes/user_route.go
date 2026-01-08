@@ -10,6 +10,8 @@ import (
 func RegisterUserRoutes(router fiber.Router, handler *handlers.UserHandler) {
 	user := router.Group("/users")
 	user.Get("/me", handler.Me)
+	user.Patch("/me/email", handler.UpdateMyEmail)
+	user.Patch("/me/password", handler.UpdateMyPassword)
 	user.Get("/", handler.GetAllUsers)
 	user.Post("/", handler.CreateUser)
 	user.Get("/:id", handler.GetUserByID)

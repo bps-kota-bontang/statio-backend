@@ -168,6 +168,64 @@ func (s *UserService) UpdateUser(id string, req *dto.UpdateUserRequest) error {
 	return nil
 }
 
+func (s *UserService) UpdateMyEmail(userID string, req *dto.UpdateMyEmailRequest) error {
+	userExisting, _ := s.userRepo.FindByEmail(req.Email)
+	if userExisting != nil && userExisting.ID != userID {
+		return fmt.Errorf("email is already in use by another user")
+	}
+
+	user, err := s.userRepo.FindByIDIncludePassword(userID)
+	if err != nil {
+		return err
+	}
+
+	user.Email = &req.Email
+
+	if err := s.userRepo.Update(user); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *UserService) UpdateMyPassword(userID string, req *dto.UpdateMyPasswordRequest) error {
+	user, err := s.userRepo.FindByIDIncludePassword(userID)
+	if err != nil {
+		return err
+	}
+
+	if user.Password != nil && req.OldPassword == nil {
+		return fmt.Errorf("old password is required")
+	}
+
+	if req.OldPassword != nil && req.NewPassword == *req.OldPassword {
+		return fmt.Errorf("new password must be different from old password")
+	}
+
+	if req.NewPassword != req.ConfirmPassword {
+		return fmt.Errorf("new password and confirm password do not match")
+	}
+
+	if user.Password != nil && req.OldPassword != nil {
+		if err := bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(*req.OldPassword)); err != nil {
+			return fmt.Errorf("old password is incorrect")
+		}
+	}
+
+	passwordHashed, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	passwordStr := string(passwordHashed)
+	user.Password = &passwordStr
+
+	if err := s.userRepo.Update(user); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *UserService) DeleteUser(id string) error {
 	return s.userRepo.Delete(id)
 }

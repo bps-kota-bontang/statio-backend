@@ -32,3 +32,13 @@ type UpdateUserRequest struct {
 	OrganizationID *string  `json:"organization_id,omitempty"`
 	InviteToken    *string  `json:"invite_token,omitempty"`
 }
+
+type UpdateMyEmailRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+type UpdateMyPasswordRequest struct {
+	OldPassword     *string `json:"old_password,omitempty"`
+	NewPassword     string  `json:"new_password" validate:"required"`
+	ConfirmPassword string  `json:"confirm_password" validate:"required,eqfield=NewPassword"`
+}
