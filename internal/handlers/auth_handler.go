@@ -28,6 +28,48 @@ func NewAuthHandler(appConfig *config.AppConfig, authConfig *config.AuthConfig, 
 	}
 }
 
+// setRefreshTokenCookie adalah helper function untuk set cookie refresh token
+func (h *AuthHandler) setRefreshTokenCookie(c *fiber.Ctx, value string, maxAge int) {
+	isProd := h.appConfig.AppEnv == "production"
+
+	cookie := &fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    value,
+		Path:     "/",
+		HTTPOnly: true,
+		Secure:   isProd,
+		SameSite: "None",
+		MaxAge:   maxAge,
+	}
+
+	if isProd {
+		cookie.Domain = ".bpsbontang.com"
+	}
+
+	c.Cookie(cookie)
+}
+
+// setStateCookie adalah helper function untuk set cookie state (untuk SSO)
+func (h *AuthHandler) setStateCookie(c *fiber.Ctx, value string, maxAge int) {
+	isProd := h.appConfig.AppEnv == "production"
+
+	cookie := &fiber.Cookie{
+		Name:     "state",
+		Value:    value,
+		Path:     "/",
+		HTTPOnly: true,
+		Secure:   isProd,
+		SameSite: "None",
+		MaxAge:   maxAge,
+	}
+
+	if isProd {
+		cookie.Domain = ".bpsbontang.com"
+	}
+
+	c.Cookie(cookie)
+}
+
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	var payload dto.LoginRequest
 	if err := c.BodyParser(&payload); err != nil {
@@ -52,23 +94,8 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		})
 	}
 
-	isProd := h.appConfig.AppEnv == "production"
-
-	cookie := &fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    tokens.RefreshToken,
-		Path:     "/",
-		HTTPOnly: true,
-		Secure:   isProd,
-		SameSite: "None",
-		MaxAge:   7 * 24 * 60 * 60,
-	}
-
-	if isProd {
-		cookie.Domain = ".bpsbontang.com"
-	}
-
-	c.Cookie(cookie)
+	// Set refresh token cookie (7 hari)
+	h.setRefreshTokenCookie(c, tokens.RefreshToken, 7*24*60*60)
 
 	// kirim access token saja ke frontend
 	return c.JSON(fiber.Map{
@@ -102,24 +129,8 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
-	isProd := h.appConfig.AppEnv == "production"
-
-	// Buat cookie baru dengan nilai kosong dan expired
-	cookie := &fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    "",
-		Path:     "/",
-		HTTPOnly: true,
-		Secure:   isProd,
-		SameSite: "None",
-		MaxAge:   -1, // Expire immediately
-	}
-
-	if isProd {
-		cookie.Domain = ".bpsbontang.com"
-	}
-
-	c.Cookie(cookie)
+	// Expire refresh token cookie
+	h.setRefreshTokenCookie(c, "", -1)
 
 	return c.JSON(fiber.Map{
 		"data":    nil,
@@ -136,25 +147,10 @@ func generateState() string {
 }
 
 func (h *AuthHandler) RedirectSSO(c *fiber.Ctx) error {
-	isProd := h.appConfig.AppEnv == "production"
-
 	state := generateState()
 
-	cookie := &fiber.Cookie{
-		Name:     "state",
-		Value:    state,
-		Path:     "/",
-		HTTPOnly: true,
-		Secure:   isProd,
-		SameSite: "None",
-		MaxAge:   7 * 24 * 60 * 60,
-	}
-
-	if isProd {
-		cookie.Domain = ".bpsbontang.com"
-	}
-
-	c.Cookie(cookie)
+	// Set state cookie (7 hari)
+	h.setStateCookie(c, state, 7*24*60*60)
 
 	redirectURL := fmt.Sprintf(
 		"%s/api/v1/auth/sso?state=%s&service_id=%s",
@@ -198,23 +194,8 @@ func (h *AuthHandler) LoginSSO(c *fiber.Ctx) error {
 		})
 	}
 
-	isProd := h.appConfig.AppEnv == "production"
-
-	cookie := &fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    tokens.RefreshToken,
-		Path:     "/",
-		HTTPOnly: true,
-		Secure:   isProd,
-		SameSite: "None",
-		MaxAge:   7 * 24 * 60 * 60,
-	}
-
-	if isProd {
-		cookie.Domain = ".bpsbontang.com"
-	}
-
-	c.Cookie(cookie)
+	// Set refresh token cookie (7 hari)
+	h.setRefreshTokenCookie(c, tokens.RefreshToken, 7*24*60*60)
 
 	return c.JSON(fiber.Map{
 		"data":    fiber.Map{"access_token": tokens.AccessToken},
@@ -253,23 +234,8 @@ func (h *AuthHandler) LoginInviteToken(c *fiber.Ctx) error {
 		})
 	}
 
-	isProd := h.appConfig.AppEnv == "production"
-
-	cookie := &fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    tokens.RefreshToken,
-		Path:     "/",
-		HTTPOnly: true,
-		Secure:   isProd,
-		SameSite: "None",
-		MaxAge:   7 * 24 * 60 * 60,
-	}
-
-	if isProd {
-		cookie.Domain = ".bpsbontang.com"
-	}
-
-	c.Cookie(cookie)
+	// Set refresh token cookie (7 hari)
+	h.setRefreshTokenCookie(c, tokens.RefreshToken, 7*24*60*60)
 
 	return c.JSON(fiber.Map{
 		"data":    fiber.Map{"access_token": tokens.AccessToken},
