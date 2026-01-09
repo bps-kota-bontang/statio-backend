@@ -1,7 +1,6 @@
 package services
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -15,7 +14,6 @@ import (
 	"time"
 
 	"github.com/hibiken/asynq"
-	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
 
@@ -23,6 +21,7 @@ type TableService struct {
 	tableRepo    repositories.TableRepository
 	factSvc      *FactService
 	dimensionSvc *DimensionService
+	excelSvc     *ExcelService
 	asynqClient  *asynq.Client
 	db           *gorm.DB
 }
@@ -31,6 +30,7 @@ func NewTableService(
 	tableRepo repositories.TableRepository,
 	factSvc *FactService,
 	dimensionSvc *DimensionService,
+	excelSvc *ExcelService,
 	asynqClient *asynq.Client,
 	db *gorm.DB,
 ) *TableService {
@@ -38,6 +38,7 @@ func NewTableService(
 		tableRepo:    tableRepo,
 		factSvc:      factSvc,
 		dimensionSvc: dimensionSvc,
+		excelSvc:     excelSvc,
 		asynqClient:  asynqClient,
 		db:           db,
 	}
@@ -660,420 +661,48 @@ func (s *TableService) CommitTables(tableIDs []string) error {
 	return nil
 }
 
-func (s *TableService) ExportTable(tableID string, years []int) (*dto.TableExportResponse, error) {
+func (s *TableService) ExportTable(tableID string, years []int, format string) (*dto.TableExportResponse, error) {
+	// Fetch table data
 	tableModel, err := s.tableRepo.FindByIDAndMultiYear(tableID, years)
 	if err != nil {
 		return nil, err
 	}
 	table := mappers.ToTableResponse(tableModel, nil)
 
-	// Create a new Excel file
-	f := excelize.NewFile()
-	defer func() {
-		if err := f.Close(); err != nil {
-			log.Printf("failed to close excel file: %v", err)
-		}
-	}()
+	// Generate file based on format
+	var fileBytes []byte
+	var fileExt string
 
-	// Sort years
-	sort.Ints(years)
-
-	// Create header style
-	headerStyle, _ := f.NewStyle(&excelize.Style{
-		Font:      &excelize.Font{Bold: true},
-		Fill:      excelize.Fill{Type: "pattern", Color: []string{"#D3D3D3"}, Pattern: 1},
-		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
-		Border: []excelize.Border{
-			{Type: "left", Color: "000000", Style: 1},
-			{Type: "right", Color: "000000", Style: 1},
-			{Type: "top", Color: "000000", Style: 1},
-			{Type: "bottom", Color: "000000", Style: 1},
-		},
-	})
-
-	// Write data rows
-	dataStyle, _ := f.NewStyle(&excelize.Style{
-		Border: []excelize.Border{
-			{Type: "left", Color: "000000", Style: 1},
-			{Type: "right", Color: "000000", Style: 1},
-			{Type: "top", Color: "000000", Style: 1},
-			{Type: "bottom", Color: "000000", Style: 1},
-		},
-	})
-
-	// Check dimension count for different formats
-	if len(table.Dimensions) == 0 {
-		// Format for 0 dimension - organization and multiple year columns
-		sheetName := "Sheet1"
-		currentRow := 1
-
-		// Write "Kabupaten/Kota" header in A1:A2 merged
-		headerRow := currentRow
-		cellA1, _ := excelize.CoordinatesToCellName(1, headerRow)
-		cellA2, _ := excelize.CoordinatesToCellName(1, headerRow+1)
-		f.SetCellValue(sheetName, cellA1, "Kabupaten/Kota")
-		f.MergeCell(sheetName, cellA1, cellA2)
-		f.SetCellStyle(sheetName, cellA1, cellA2, headerStyle)
-
-		// Write "Tahun" header merged across all year columns (B1 to lastCol1)
-		cellB1, _ := excelize.CoordinatesToCellName(2, headerRow)
-		cellLast1, _ := excelize.CoordinatesToCellName(len(years)+1, headerRow)
-		f.SetCellValue(sheetName, cellB1, "Tahun")
-		f.MergeCell(sheetName, cellB1, cellLast1)
-		f.SetCellStyle(sheetName, cellB1, cellLast1, headerStyle)
-		currentRow++
-
-		// Write year values in B2, C2, D2, ...
-		for colIdx, year := range years {
-			cellName, _ := excelize.CoordinatesToCellName(colIdx+2, currentRow)
-			f.SetCellValue(sheetName, cellName, year)
-			f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
-		}
-		currentRow++
-
-		// Create map: year -> value
-		yearValues := make(map[int]interface{})
-		for _, fact := range table.Facts {
-			if fact.Value != nil {
-				yearValues[fact.Year] = *fact.Value
-			}
-		}
-
-		// Write organization name in A3
-		cellA3, _ := excelize.CoordinatesToCellName(1, currentRow)
-		orgName := "Kota Bontang"
-		f.SetCellValue(sheetName, cellA3, orgName)
-		f.SetCellStyle(sheetName, cellA3, cellA3, dataStyle)
-
-		// Write values in B3, C3, D3, ...
-		for colIdx, year := range years {
-			cellName, _ := excelize.CoordinatesToCellName(colIdx+2, currentRow)
-			if yearValues[year] != nil {
-				f.SetCellValue(sheetName, cellName, yearValues[year])
-			} else {
-				f.SetCellValue(sheetName, cellName, "")
-			}
-			f.SetCellStyle(sheetName, cellName, cellName, dataStyle)
-		}
-
-		// Auto-fit columns
-		f.SetColWidth(sheetName, "A", "A", 25)
-		for i := range years {
-			colName, _ := excelize.ColumnNumberToName(i + 2)
-			f.SetColWidth(sheetName, colName, colName, 15)
-		}
-	} else if len(table.Dimensions) == 1 {
-		// Format for 1 dimension - horizontal layout with years as columns
-		sheetName := "Sheet1"
-		currentRow := 1
-
-		dim := table.Dimensions[0]
-
-		// Collect dimension values (preserve order from dimension definition)
-		dimValues := []string{}
-		for _, dimValue := range dim.Values {
-			dimValues = append(dimValues, dimValue.Name)
-		}
-
-		// Write dimension name header (merged cells A1:A2)
-		headerRow := currentRow
-		cellA1, _ := excelize.CoordinatesToCellName(1, headerRow)
-		cellA2, _ := excelize.CoordinatesToCellName(1, headerRow+1)
-		f.SetCellValue(sheetName, cellA1, dim.Name)
-		f.MergeCell(sheetName, cellA1, cellA2)
-		f.SetCellStyle(sheetName, cellA1, cellA2, headerStyle)
-
-		// Write "Tahun" header merged across all year columns (B1 to lastCol1)
-		cellB1, _ := excelize.CoordinatesToCellName(2, headerRow)
-		cellLast1, _ := excelize.CoordinatesToCellName(len(years)+1, headerRow)
-		f.SetCellValue(sheetName, cellB1, "Tahun")
-		f.MergeCell(sheetName, cellB1, cellLast1)
-		f.SetCellStyle(sheetName, cellB1, cellLast1, headerStyle)
-		currentRow++
-
-		// Write year values in row 2 (B2, C2, D2, ...)
-		for colIdx, year := range years {
-			cellName, _ := excelize.CoordinatesToCellName(colIdx+2, currentRow)
-			f.SetCellValue(sheetName, cellName, year)
-			f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
-		}
-		currentRow++
-
-		// Create pivot data structure: dimValue -> year -> value
-		pivotData := make(map[string]map[int]interface{})
-		for _, fact := range table.Facts {
-			var dimVal string
-			for _, fv := range fact.Dimensions {
-				if fv.ID == dim.ID {
-					dimVal = fv.Value.Name
-					break
-				}
-			}
-			if pivotData[dimVal] == nil {
-				pivotData[dimVal] = make(map[int]interface{})
-			}
-			if fact.Value != nil {
-				pivotData[dimVal][fact.Year] = *fact.Value
-			}
-		}
-
-		// Write data rows (A3 onwards: dimension values, B3 onwards: values)
-		for _, dimVal := range dimValues {
-			// Row header (dimension value in column A)
-			cellName, _ := excelize.CoordinatesToCellName(1, currentRow)
-			f.SetCellValue(sheetName, cellName, dimVal)
-			f.SetCellStyle(sheetName, cellName, cellName, dataStyle)
-
-			// Data cells for each year (B, C, D, ...)
-			for colIdx, year := range years {
-				cellName, _ := excelize.CoordinatesToCellName(colIdx+2, currentRow)
-				if pivotData[dimVal] != nil && pivotData[dimVal][year] != nil {
-					f.SetCellValue(sheetName, cellName, pivotData[dimVal][year])
-				} else {
-					f.SetCellValue(sheetName, cellName, "")
-				}
-				f.SetCellStyle(sheetName, cellName, cellName, dataStyle)
-			}
-			currentRow++
-		}
-
-		// Auto-fit columns
-		f.SetColWidth(sheetName, "A", "A", 25)
-		for i := range years {
-			colName, _ := excelize.ColumnNumberToName(i + 2)
-			f.SetColWidth(sheetName, colName, colName, 15)
-		}
-	} else if len(table.Dimensions) == 2 {
-		// Format for 2 dimensions - each year gets its own sheet
-		dim1 := table.Dimensions[0] // Row dimension (vertical)
-		dim2 := table.Dimensions[1] // Column dimension (horizontal)
-
-		// Use dimension values from table definition (preserve order)
-		dim1Values := []string{}
-		dim2Values := []string{}
-
-		for _, dimValue := range dim1.Values {
-			dim1Values = append(dim1Values, dimValue.Name)
-		}
-
-		for _, dimValue := range dim2.Values {
-			dim2Values = append(dim2Values, dimValue.Name)
-		}
-
-		// Create pivot data structure by year: year -> dim1Val -> dim2Val -> value
-		pivotDataByYear := make(map[int]map[string]map[string]interface{})
-		for _, fact := range table.Facts {
-			var dim1Val, dim2Val string
-			for _, fv := range fact.Dimensions {
-				if fv.ID == dim1.ID {
-					dim1Val = fv.Value.Name
-				}
-				if fv.ID == dim2.ID {
-					dim2Val = fv.Value.Name
-				}
-			}
-			if pivotDataByYear[fact.Year] == nil {
-				pivotDataByYear[fact.Year] = make(map[string]map[string]interface{})
-			}
-			if pivotDataByYear[fact.Year][dim1Val] == nil {
-				pivotDataByYear[fact.Year][dim1Val] = make(map[string]interface{})
-			}
-			if fact.Value != nil {
-				pivotDataByYear[fact.Year][dim1Val][dim2Val] = *fact.Value
-			}
-		}
-
-		// Delete default Sheet1 after creating all year sheets
-		firstSheet := true
-
-		// Create a sheet for each year
-		for _, year := range years {
-			sheetName := sanitizeSheetName(fmt.Sprintf("%d", year))
-
-			if firstSheet {
-				// Rename Sheet1 for the first year
-				if err := f.SetSheetName("Sheet1", sheetName); err != nil {
-					log.Printf("failed to set sheet name for year %d: %v", year, err)
-					sheetName = "Sheet1"
-				}
-				firstSheet = false
-			} else {
-				// Create new sheet for other years
-				_, err := f.NewSheet(sheetName)
-				if err != nil {
-					log.Printf("failed to create sheet for year %d: %v", year, err)
-					continue
-				}
-			}
-
-			currentRow := 1
-			pivotData := pivotDataByYear[year]
-
-			// Row 1: A1:A2 merged with dim1.Name (Dimension 1)
-			cellA1, _ := excelize.CoordinatesToCellName(1, currentRow)
-			cellA2, _ := excelize.CoordinatesToCellName(1, currentRow+1)
-			f.SetCellValue(sheetName, cellA1, dim1.Name)
-			f.MergeCell(sheetName, cellA1, cellA2)
-			f.SetCellStyle(sheetName, cellA1, cellA2, headerStyle)
-
-			// Row 1: B1 to [lastCol]1 merged with dim2.Name (Dimension 2)
-			cellB1, _ := excelize.CoordinatesToCellName(2, currentRow)
-			cellLast1, _ := excelize.CoordinatesToCellName(len(dim2Values)+1, currentRow)
-			f.SetCellValue(sheetName, cellB1, dim2.Name)
-			f.MergeCell(sheetName, cellB1, cellLast1)
-			f.SetCellStyle(sheetName, cellB1, cellLast1, headerStyle)
-			currentRow++
-
-			// Row 2: Write dim2 values starting from B2
-			for colIdx, dim2Val := range dim2Values {
-				cellName, _ := excelize.CoordinatesToCellName(colIdx+2, currentRow)
-				f.SetCellValue(sheetName, cellName, dim2Val)
-				f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
-			}
-			currentRow++
-
-			// Row 3+: Write dim1 values in column A and data grid
-			for _, dim1Val := range dim1Values {
-				// Column A: dimension 1 value
-				cellName, _ := excelize.CoordinatesToCellName(1, currentRow)
-				f.SetCellValue(sheetName, cellName, dim1Val)
-				f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
-
-				// Data cells (B, C, D, E, ...)
-				for colIdx, dim2Val := range dim2Values {
-					cellName, _ := excelize.CoordinatesToCellName(colIdx+2, currentRow)
-					if pivotData != nil && pivotData[dim1Val] != nil && pivotData[dim1Val][dim2Val] != nil {
-						f.SetCellValue(sheetName, cellName, pivotData[dim1Val][dim2Val])
-					} else {
-						f.SetCellValue(sheetName, cellName, "")
-					}
-					f.SetCellStyle(sheetName, cellName, cellName, dataStyle)
-				}
-				currentRow++
-			}
-
-			// Auto-fit columns
-			f.SetColWidth(sheetName, "A", "A", 25)
-			for i := 0; i < len(dim2Values); i++ {
-				colName, _ := excelize.ColumnNumberToName(i + 2)
-				f.SetColWidth(sheetName, colName, colName, 15)
-			}
-		}
-	} else {
-		// Standard table format for tables with 3+ dimensions
-		sheetName := "Sheet1"
-		currentRow := 1
-
-		// Build headers
-		headers := []string{"No"}
-		for _, dim := range table.Dimensions {
-			headers = append(headers, dim.Name)
-		}
-		headers = append(headers, "Year", "Value")
-
-		// Write headers
-		headerRow := currentRow
-		for colIdx, header := range headers {
-			cellName, _ := excelize.CoordinatesToCellName(colIdx+1, headerRow)
-			f.SetCellValue(sheetName, cellName, header)
-			f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
-		}
-		currentRow++
-
-		// Standard table format
-		for idx, fact := range table.Facts {
-			colIdx := 0
-
-			// Row number
-			cellName, _ := excelize.CoordinatesToCellName(colIdx+1, currentRow)
-			f.SetCellValue(sheetName, cellName, idx+1)
-			f.SetCellStyle(sheetName, cellName, cellName, dataStyle)
-			colIdx++
-
-			// Dimension values
-			for _, dim := range table.Dimensions {
-				var dimValue string
-				for _, fv := range fact.Dimensions {
-					if fv.ID == dim.ID {
-						dimValue = fv.Value.Name
-						break
-					}
-				}
-				cellName, _ := excelize.CoordinatesToCellName(colIdx+1, currentRow)
-				f.SetCellValue(sheetName, cellName, dimValue)
-				f.SetCellStyle(sheetName, cellName, cellName, dataStyle)
-				colIdx++
-			}
-
-			// Year
-			cellName, _ = excelize.CoordinatesToCellName(colIdx+1, currentRow)
-			f.SetCellValue(sheetName, cellName, fact.Year)
-			f.SetCellStyle(sheetName, cellName, cellName, dataStyle)
-			colIdx++
-
-			// Fact value
-			cellName, _ = excelize.CoordinatesToCellName(colIdx+1, currentRow)
-			if fact.Value != nil {
-				f.SetCellValue(sheetName, cellName, *fact.Value)
-			} else {
-				f.SetCellValue(sheetName, cellName, "")
-			}
-			f.SetCellStyle(sheetName, cellName, cellName, dataStyle)
-
-			currentRow++
-		}
-
-		// Auto-fit columns
-		for i := 0; i < len(headers); i++ {
-			colName, _ := excelize.ColumnNumberToName(i + 1)
-			f.SetColWidth(sheetName, colName, colName, 15)
-		}
+	switch format {
+	case "xls":
+		fileBytes, err = s.excelSvc.ExportToXLS(table, years)
+		fileExt = "xls"
+	case "xlsx", "":
+		fileBytes, err = s.excelSvc.ExportToXLSX(table, years)
+		fileExt = "xlsx"
+	default:
+		return nil, fmt.Errorf("unsupported export format: %s", format)
 	}
 
-	// Save to buffer
-	var buf bytes.Buffer
-	if err := f.Write(&buf); err != nil {
-		return nil, fmt.Errorf("failed to write excel file: %w", err)
+	if err != nil {
+		return nil, err
 	}
 
-	file := buf.Bytes()
-
-	// Generate filename with all years listed
+	// Generate filename
 	var filename string
 	if len(years) == 1 {
-		filename = fmt.Sprintf("%s_%d.xlsx", table.Name, years[0])
+		filename = fmt.Sprintf("%s_%d.%s", table.Name, years[0], fileExt)
 	} else {
 		// List all years separated by underscores
 		yearStrs := make([]string, len(years))
 		for i, year := range years {
 			yearStrs[i] = fmt.Sprintf("%d", year)
 		}
-		filename = fmt.Sprintf("%s_%s.xlsx", table.Name, strings.Join(yearStrs, "_"))
+		filename = fmt.Sprintf("%s_%s.%s", table.Name, strings.Join(yearStrs, "_"), fileExt)
 	}
 
 	return &dto.TableExportResponse{
 		Name: filename,
-		File: file,
+		File: fileBytes,
 	}, nil
-}
-
-// sanitizeSheetName ensures the sheet name is valid for Excel
-func sanitizeSheetName(name string) string {
-	// Replace invalid characters
-	invalidChars := []string{"\\", "/", "?", "*", "[", "]", ":"}
-	for _, char := range invalidChars {
-		name = strings.ReplaceAll(name, char, "_")
-	}
-
-	// Truncate to 31 characters (Excel limit)
-	if len(name) > 31 {
-		name = name[:31]
-	}
-
-	// Ensure not empty
-	if name == "" {
-		name = "Sheet"
-	}
-
-	return name
 }

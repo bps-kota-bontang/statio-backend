@@ -7,6 +7,7 @@ import (
 )
 
 var ServiceSet = wire.NewSet(
+	services.NewExcelService,
 	services.NewTableService,
 	services.NewFactService,
 	services.NewIndicatorService,

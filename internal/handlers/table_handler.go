@@ -694,7 +694,10 @@ func (h *TableHandler) ExportTable(c *fiber.Ctx) error {
 		years = []int{time.Now().Year() - 1}
 	}
 
-	data, err := h.service.ExportTable(id, years)
+	// Get format from query parameter (default to xlsx)
+	format := c.Query("format", "xlsx")
+
+	data, err := h.service.ExportTable(id, years, format)
 	if err != nil {
 		status := 500
 		if err == gorm.ErrRecordNotFound {
@@ -706,8 +709,14 @@ func (h *TableHandler) ExportTable(c *fiber.Ctx) error {
 		})
 	}
 
+	// Set Content-Type based on format
+	contentType := "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+	if format == "xls" {
+		contentType = "application/vnd.ms-excel"
+	}
+
 	c.Set("Content-Disposition", "attachment; filename="+data.Name)
-	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Set("Content-Type", contentType)
 	c.Status(200)
 	return c.Send(data.File)
 }
