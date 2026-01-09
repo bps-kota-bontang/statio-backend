@@ -558,6 +558,19 @@ func (s *TableService) UpdateTableStatus(
 			return fmt.Errorf("only admin users can change the table status to finalized")
 		}
 		table.IsLocked = true
+
+		payload, err := json.Marshal(&dto.AnalyzeFactPayload{
+			TableID: table.ID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to marshal analyze fact payload: %w", err)
+		}
+
+		task := asynq.NewTask("fact:analyze", payload)
+
+		if _, err := s.asynqClient.Enqueue(task); err != nil {
+			return fmt.Errorf("failed to enqueue analyze fact task: %w", err)
+		}
 	}
 
 	table.Status = status
