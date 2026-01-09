@@ -35,10 +35,10 @@ ARG BUILD_HASH
 ENV APP_BUILD=${BUILD_HASH}
 
 # Install runtime dependencies: SSL certificates and Bun for XLS converter
-RUN apk add --no-cache ca-certificates curl unzip bash \
+RUN apk add --no-cache ca-certificates curl unzip bash libstdc++ libgcc \
     && curl -fsSL https://bun.sh/install | bash \
     && ln -s /root/.bun/bin/bun /usr/local/bin/bun \
-    && apk del bash
+    && apk del bash curl unzip
 
 # Add non-root user
 RUN adduser -D -g '' statio
