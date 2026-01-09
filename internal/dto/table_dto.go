@@ -82,3 +82,8 @@ type CommitTablesRequest struct {
 type FilterTablesRequest struct {
 	OrganizationID *string `json:"organization_id,omitempty"`
 }
+
+type TableExportResponse struct {
+	Name string `json:"name"`
+	File []byte `json:"file"`
+}

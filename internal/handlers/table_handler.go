@@ -656,3 +656,39 @@ func (h *TableHandler) CommitTables(c *fiber.Ctx) error {
 		"message": "Tables committed successfully",
 	})
 }
+
+func (h *TableHandler) ExportTable(c *fiber.Ctx) error {
+	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to export table",
+		})
+	}
+
+	yearParam := c.QueryInt("year")
+
+	var year int = time.Now().Year() - 1
+	if yearParam != 0 {
+		year = yearParam
+	}
+
+	data, err := h.service.ExportTable(id, year)
+	if err != nil {
+		status := 500
+		if err == gorm.ErrRecordNotFound {
+			status = 404
+		}
+		return c.Status(status).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	c.Set("Content-Disposition", "attachment; filename="+data.Name)
+	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Status(200)
+	return c.Send(data.File)
+}

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hibiken/asynq"
+	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
 
@@ -655,4 +657,361 @@ func (s *TableService) CommitTables(tableIDs []string) error {
 	}
 
 	return nil
+}
+
+func (s *TableService) ExportTable(tableID string, year int) (*dto.TableExportResponse, error) {
+	table, err := s.GetByID(tableID, &year)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get table for export: %w", err)
+	}
+
+	// Create a new Excel file
+	f := excelize.NewFile()
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Printf("failed to close excel file: %v", err)
+		}
+	}()
+
+	// Set sheet name based on dimension count
+	var sheetName string
+	if len(table.Dimensions) == 2 {
+		sheetName = fmt.Sprintf("%d (Tahunan)", year)
+	} else {
+		sheetName = table.Name
+	}
+
+	// Rename default Sheet1 to custom name
+	f.SetSheetName("Sheet1", sheetName)
+
+	currentRow := 1
+
+	// Create header style
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"#D3D3D3"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "left", Color: "000000", Style: 1},
+			{Type: "right", Color: "000000", Style: 1},
+			{Type: "top", Color: "000000", Style: 1},
+			{Type: "bottom", Color: "000000", Style: 1},
+		},
+	})
+
+	// Write data rows
+	dataStyle, _ := f.NewStyle(&excelize.Style{
+		Border: []excelize.Border{
+			{Type: "left", Color: "000000", Style: 1},
+			{Type: "right", Color: "000000", Style: 1},
+			{Type: "top", Color: "000000", Style: 1},
+			{Type: "bottom", Color: "000000", Style: 1},
+		},
+	})
+
+	// Check dimension count for different formats
+	if len(table.Dimensions) == 0 {
+		// Format for 0 dimension - organization and single year value
+		// Filter facts by the selected year only
+		var factValue *string
+		for _, fact := range table.Facts {
+			if fact.Year == year {
+				if fact.Value != nil {
+					strValue := fmt.Sprintf("%v", *fact.Value)
+					factValue = &strValue
+				}
+				break
+			}
+		}
+
+		// Write "Kabupaten/Kota" header in A1:A2 merged
+		headerRow := currentRow
+		cellA1, _ := excelize.CoordinatesToCellName(1, headerRow)
+		cellA2, _ := excelize.CoordinatesToCellName(1, headerRow+1)
+		f.SetCellValue(sheetName, cellA1, "Kabupaten/Kota")
+		f.MergeCell(sheetName, cellA1, cellA2)
+		f.SetCellStyle(sheetName, cellA1, cellA2, headerStyle)
+
+		// Write "Tahun" header in B1
+		cellB1, _ := excelize.CoordinatesToCellName(2, headerRow)
+		f.SetCellValue(sheetName, cellB1, "Tahun")
+		f.SetCellStyle(sheetName, cellB1, cellB1, headerStyle)
+		currentRow++
+
+		// Write year value in B2
+		cellB2, _ := excelize.CoordinatesToCellName(2, currentRow)
+		f.SetCellValue(sheetName, cellB2, year)
+		f.SetCellStyle(sheetName, cellB2, cellB2, headerStyle)
+		currentRow++
+
+		// Write organization name in A3
+		cellA3, _ := excelize.CoordinatesToCellName(1, currentRow)
+		f.SetCellValue(sheetName, cellA3, "Kota Bontang")
+		f.SetCellStyle(sheetName, cellA3, cellA3, dataStyle)
+
+		// Write value in B3
+		cellB3, _ := excelize.CoordinatesToCellName(2, currentRow)
+		if factValue != nil {
+			f.SetCellValue(sheetName, cellB3, *factValue)
+		} else {
+			f.SetCellValue(sheetName, cellB3, "")
+		}
+		f.SetCellStyle(sheetName, cellB3, cellB3, dataStyle)
+
+		// Auto-fit columns
+		f.SetColWidth(sheetName, "A", "A", 25)
+		f.SetColWidth(sheetName, "B", "B", 15)
+	} else if len(table.Dimensions) == 1 {
+		// Format for 1 dimension - horizontal layout with years as columns
+		dim := table.Dimensions[0]
+
+		// Collect unique years from facts
+		yearsMap := make(map[int]bool)
+		years := []int{}
+		for _, fact := range table.Facts {
+			if !yearsMap[fact.Year] {
+				yearsMap[fact.Year] = true
+				years = append(years, fact.Year)
+			}
+		}
+		sort.Ints(years)
+
+		// Collect dimension values (preserve order from dimension definition)
+		dimValues := []string{}
+
+		// Use dimension values order from table definition
+		for _, dimValue := range dim.Values {
+			dimValues = append(dimValues, dimValue.Name)
+		}
+
+		// Write dimension name header (merged cells A1:A2)
+		headerRow := currentRow
+		cellA1, _ := excelize.CoordinatesToCellName(1, headerRow)
+		cellA2, _ := excelize.CoordinatesToCellName(1, headerRow+1)
+		f.SetCellValue(sheetName, cellA1, dim.Name)
+		f.MergeCell(sheetName, cellA1, cellA2)
+		f.SetCellStyle(sheetName, cellA1, cellA2, headerStyle)
+
+		// Write "Tahun" header in row 1 (B1, C1, D1, ...)
+		for colIdx := range years {
+			cellName, _ := excelize.CoordinatesToCellName(colIdx+2, headerRow)
+			f.SetCellValue(sheetName, cellName, "Tahun")
+			f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
+		}
+		currentRow++
+
+		// Write year values in row 2 (B2, C2, D2, ...)
+		for colIdx, year := range years {
+			cellName, _ := excelize.CoordinatesToCellName(colIdx+2, currentRow)
+			f.SetCellValue(sheetName, cellName, year)
+			f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
+		}
+		currentRow++
+
+		// Create pivot data structure: dimValue -> year -> value
+		pivotData := make(map[string]map[int]*string)
+		for _, fact := range table.Facts {
+			var dimVal string
+			for _, fv := range fact.Dimensions {
+				if fv.ID == dim.ID {
+					dimVal = fv.Value.Name
+					break
+				}
+			}
+			if pivotData[dimVal] == nil {
+				pivotData[dimVal] = make(map[int]*string)
+			}
+			if fact.Value != nil {
+				strValue := fmt.Sprintf("%v", *fact.Value)
+				pivotData[dimVal][fact.Year] = &strValue
+			}
+		}
+
+		// Write data rows (A3 onwards: dimension values, B3 onwards: values)
+		for _, dimVal := range dimValues {
+			// Row header (dimension value in column A)
+			cellName, _ := excelize.CoordinatesToCellName(1, currentRow)
+			f.SetCellValue(sheetName, cellName, dimVal)
+			f.SetCellStyle(sheetName, cellName, cellName, dataStyle)
+
+			// Data cells for each year (B, C, D, ...)
+			for colIdx, year := range years {
+				cellName, _ := excelize.CoordinatesToCellName(colIdx+2, currentRow)
+				if pivotData[dimVal] != nil && pivotData[dimVal][year] != nil {
+					f.SetCellValue(sheetName, cellName, *pivotData[dimVal][year])
+				} else {
+					f.SetCellValue(sheetName, cellName, "")
+				}
+				f.SetCellStyle(sheetName, cellName, cellName, dataStyle)
+			}
+			currentRow++
+		}
+
+		// Auto-fit columns
+		f.SetColWidth(sheetName, "A", "A", 25)
+		for i := 0; i < len(years); i++ {
+			colName, _ := excelize.ColumnNumberToName(i + 2)
+			f.SetColWidth(sheetName, colName, colName, 15)
+		}
+	} else if len(table.Dimensions) == 2 {
+		// Pivot table format
+		dim1 := table.Dimensions[0] // Row dimension (vertical)
+		dim2 := table.Dimensions[1] // Column dimension (horizontal)
+
+		// Use dimension values from table definition (preserve order)
+		dim1Values := []string{}
+		dim2Values := []string{}
+
+		for _, dimValue := range dim1.Values {
+			dim1Values = append(dim1Values, dimValue.Name)
+		}
+
+		for _, dimValue := range dim2.Values {
+			dim2Values = append(dim2Values, dimValue.Name)
+		}
+
+		// Create pivot data structure: dim1Val -> dim2Val -> value
+		pivotData := make(map[string]map[string]*string)
+		for _, fact := range table.Facts {
+			var dim1Val, dim2Val string
+			for _, fv := range fact.Dimensions {
+				if fv.ID == dim1.ID {
+					dim1Val = fv.Value.Name
+				}
+				if fv.ID == dim2.ID {
+					dim2Val = fv.Value.Name
+				}
+			}
+			if pivotData[dim1Val] == nil {
+				pivotData[dim1Val] = make(map[string]*string)
+			}
+			if fact.Value != nil {
+				strValue := fmt.Sprintf("%v", *fact.Value)
+				pivotData[dim1Val][dim2Val] = &strValue
+			}
+		}
+
+		// Row 1: A1:A2 merged with dim1.Name (Dimension 1)
+		cellA1, _ := excelize.CoordinatesToCellName(1, currentRow)
+		cellA2, _ := excelize.CoordinatesToCellName(1, currentRow+1)
+		f.SetCellValue(sheetName, cellA1, dim1.Name)
+		f.MergeCell(sheetName, cellA1, cellA2)
+		f.SetCellStyle(sheetName, cellA1, cellA2, headerStyle)
+
+		// Row 1: B1 to [lastCol]1 merged with dim2.Name (Dimension 2)
+		cellB1, _ := excelize.CoordinatesToCellName(2, currentRow)
+		cellLast1, _ := excelize.CoordinatesToCellName(len(dim2Values)+1, currentRow)
+		f.SetCellValue(sheetName, cellB1, dim2.Name)
+		f.MergeCell(sheetName, cellB1, cellLast1)
+		f.SetCellStyle(sheetName, cellB1, cellLast1, headerStyle)
+		currentRow++
+
+		// Row 2: Write dim2 values (D20, D21, D22, D23) starting from B2
+		for colIdx, dim2Val := range dim2Values {
+			cellName, _ := excelize.CoordinatesToCellName(colIdx+2, currentRow)
+			f.SetCellValue(sheetName, cellName, dim2Val)
+			f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
+		}
+		currentRow++
+
+		// Row 3+: Write dim1 values in column A and data grid
+		for _, dim1Val := range dim1Values {
+			// Column A: dimension 1 value (D1, D2, D3, ...)
+			cellName, _ := excelize.CoordinatesToCellName(1, currentRow)
+			f.SetCellValue(sheetName, cellName, dim1Val)
+			f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
+
+			// Data cells (B, C, D, E, ...)
+			for colIdx, dim2Val := range dim2Values {
+				cellName, _ := excelize.CoordinatesToCellName(colIdx+2, currentRow)
+				if pivotData[dim1Val] != nil && pivotData[dim1Val][dim2Val] != nil {
+					f.SetCellValue(sheetName, cellName, *pivotData[dim1Val][dim2Val])
+				} else {
+					f.SetCellValue(sheetName, cellName, "")
+				}
+				f.SetCellStyle(sheetName, cellName, cellName, dataStyle)
+			}
+			currentRow++
+		}
+
+		// Auto-fit columns
+		f.SetColWidth(sheetName, "A", "A", 25)
+		for i := 0; i < len(dim2Values); i++ {
+			colName, _ := excelize.ColumnNumberToName(i + 2)
+			f.SetColWidth(sheetName, colName, colName, 15)
+		}
+	} else {
+		// Standard table format for tables with 3+ dimensions or 0 dimensions
+		// Build headers
+		headers := []string{"No"}
+		for _, dim := range table.Dimensions {
+			headers = append(headers, dim.Name)
+		}
+		headers = append(headers, "Value")
+
+		// Write headers
+		headerRow := currentRow
+		for colIdx, header := range headers {
+			cellName, _ := excelize.CoordinatesToCellName(colIdx+1, headerRow)
+			f.SetCellValue(sheetName, cellName, header)
+			f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
+		}
+		currentRow++
+
+		// Standard table format
+		for idx, fact := range table.Facts {
+			colIdx := 0
+
+			// Row number
+			cellName, _ := excelize.CoordinatesToCellName(colIdx+1, currentRow)
+			f.SetCellValue(sheetName, cellName, idx+1)
+			f.SetCellStyle(sheetName, cellName, cellName, dataStyle)
+			colIdx++
+
+			// Dimension values
+			for _, dim := range table.Dimensions {
+				var dimValue string
+				for _, fv := range fact.Dimensions {
+					if fv.ID == dim.ID {
+						dimValue = fv.Value.Name
+						break
+					}
+				}
+				cellName, _ := excelize.CoordinatesToCellName(colIdx+1, currentRow)
+				f.SetCellValue(sheetName, cellName, dimValue)
+				f.SetCellStyle(sheetName, cellName, cellName, dataStyle)
+				colIdx++
+			}
+
+			// Fact value
+			cellName, _ = excelize.CoordinatesToCellName(colIdx+1, currentRow)
+			if fact.Value != nil {
+				f.SetCellValue(sheetName, cellName, *fact.Value)
+			} else {
+				f.SetCellValue(sheetName, cellName, "")
+			}
+			f.SetCellStyle(sheetName, cellName, cellName, dataStyle)
+
+			currentRow++
+		}
+
+		// Auto-fit columns
+		for i := 0; i < len(headers); i++ {
+			colName, _ := excelize.ColumnNumberToName(i + 1)
+			f.SetColWidth(sheetName, colName, colName, 15)
+		}
+	}
+
+	// Save to buffer
+	var buf bytes.Buffer
+	if err := f.Write(&buf); err != nil {
+		return nil, fmt.Errorf("failed to write excel file: %w", err)
+	}
+
+	file := buf.Bytes()
+
+	return &dto.TableExportResponse{
+		Name: fmt.Sprintf("%s_%d.xlsx", table.Name, year),
+		File: file,
+	}, nil
 }

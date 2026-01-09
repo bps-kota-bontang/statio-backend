@@ -34,6 +34,7 @@ func NewFiberApp(
 		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
 		AllowHeaders:     "Origin, Content-Type, Authorization, X-Refresh-Attempt",
 		AllowCredentials: true,
+		ExposeHeaders:    "Content-Disposition",
 	}
 
 	if isProd {
