@@ -82,7 +82,7 @@ func (s *ExcelService) ExportToXLS(table *dto.TableResponse, years []int) ([]byt
 
 	// Step 2: Check if converter is available
 	if s.xlsxConverter == nil {
-		return nil, fmt.Errorf("XLS converter not available - Node.js may not be installed")
+		return nil, fmt.Errorf("XLS converter not available - Bun may not be installed")
 	}
 
 	// Step 3: Convert XLSX to XLS using Node.js subprocess

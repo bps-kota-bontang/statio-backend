@@ -34,8 +34,10 @@ FROM alpine:3.22
 ARG BUILD_HASH
 ENV APP_BUILD=${BUILD_HASH}
 
-# Install SSL certificates
-RUN apk add --no-cache ca-certificates
+# Install runtime dependencies: SSL certificates and Bun for XLS converter
+RUN apk add --no-cache ca-certificates curl unzip \
+    && curl -fsSL https://bun.sh/install | bash \
+    && ln -s /root/.bun/bin/bun /usr/local/bin/bun
 
 # Add non-root user
 RUN adduser -D -g '' statio
@@ -45,6 +47,13 @@ WORKDIR /app
 
 # Copy binary from builder
 COPY --from=builder /app/statio-backend .
+
+# Copy Bun converter script and dependencies for XLS export
+COPY --chown=statio:statio scripts/xlsx-to-xls.js ./scripts/
+COPY --chown=statio:statio scripts/package.json ./scripts/
+
+# Install dependencies with Bun (much faster than npm)
+RUN cd scripts && bun install --production && cd ..
 
 # Switch to non-root user
 USER statio

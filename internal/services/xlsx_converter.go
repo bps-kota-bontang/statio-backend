@@ -23,9 +23,9 @@ func NewXLSXConverterService() (*XLSXConverterService, error) {
 		return nil, fmt.Errorf("converter script not found: %w", err)
 	}
 
-	// Verify Node.js is installed
-	if _, err := exec.LookPath("node"); err != nil {
-		return nil, fmt.Errorf("node.js not found in PATH: %w", err)
+	// Verify Bun is installed
+	if _, err := exec.LookPath("bun"); err != nil {
+		return nil, fmt.Errorf("bun not found in PATH: %w", err)
 	}
 
 	return &XLSXConverterService{
@@ -39,8 +39,8 @@ func (s *XLSXConverterService) ConvertXLSXToXLS(xlsxData []byte) ([]byte, error)
 		return nil, fmt.Errorf("empty XLSX data")
 	}
 
-	// Create command to run Node.js script
-	cmd := exec.Command("node", s.scriptPath)
+	// Create command to run Bun script
+	cmd := exec.Command("bun", s.scriptPath)
 
 	// Prepare pipes
 	stdin, err := cmd.StdinPipe()
