@@ -197,6 +197,7 @@ func ToTableModel(input *dto.CreateTableRequest) *models.Table {
 	for i, dimID := range input.DimensionIDs {
 		dimensions[i] = models.TableDimension{
 			DimensionID: dimID,
+			Order:       i,
 		}
 	}
 

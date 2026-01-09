@@ -123,6 +123,7 @@ func (r *TableRepositoryImpl) UpdateWithRelations(table *models.Table, dimension
 					newDimensions[i] = models.TableDimension{
 						TableID:     table.ID,
 						DimensionID: dimID,
+						Order:       i,
 					}
 				}
 				if err := tx.Create(&newDimensions).Error; err != nil {
