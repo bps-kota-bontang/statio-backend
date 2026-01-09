@@ -1,4 +1,4 @@
-.PHONY: wire run run-worker build dev dev-worker generate
+.PHONY: wire run run-worker build dev dev-worker generate hot
 
 # Generate wire_gen.go
 wire:
@@ -46,3 +46,7 @@ dev-worker:
 dev-scheduler:
 	make generate
 	make run-scheduler
+
+# Hot reload mode with air
+hot:
+	air

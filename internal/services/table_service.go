@@ -704,8 +704,7 @@ func (s *TableService) ExportTable(tableID string, years []int) (*dto.TableExpor
 	// Check dimension count for different formats
 	if len(table.Dimensions) == 0 {
 		// Format for 0 dimension - organization and multiple year columns
-		sheetName := table.Name
-		f.SetSheetName("Sheet1", sheetName)
+		sheetName := "Sheet1"
 		currentRow := 1
 
 		// Write "Kabupaten/Kota" header in A1:A2 merged
@@ -765,8 +764,7 @@ func (s *TableService) ExportTable(tableID string, years []int) (*dto.TableExpor
 		}
 	} else if len(table.Dimensions) == 1 {
 		// Format for 1 dimension - horizontal layout with years as columns
-		sheetName := table.Name
-		f.SetSheetName("Sheet1", sheetName)
+		sheetName := "Sheet1"
 		currentRow := 1
 
 		dim := table.Dimensions[0]
@@ -841,7 +839,7 @@ func (s *TableService) ExportTable(tableID string, years []int) (*dto.TableExpor
 
 		// Auto-fit columns
 		f.SetColWidth(sheetName, "A", "A", 25)
-		for i := 0; i < len(years); i++ {
+		for i := range years {
 			colName, _ := excelize.ColumnNumberToName(i + 2)
 			f.SetColWidth(sheetName, colName, colName, 15)
 		}
@@ -890,11 +888,14 @@ func (s *TableService) ExportTable(tableID string, years []int) (*dto.TableExpor
 
 		// Create a sheet for each year
 		for _, year := range years {
-			sheetName := fmt.Sprintf("%d (Tahunan)", year)
+			sheetName := sanitizeSheetName(fmt.Sprintf("%d", year))
 
 			if firstSheet {
 				// Rename Sheet1 for the first year
-				f.SetSheetName("Sheet1", sheetName)
+				if err := f.SetSheetName("Sheet1", sheetName); err != nil {
+					log.Printf("failed to set sheet name for year %d: %v", year, err)
+					sheetName = "Sheet1"
+				}
 				firstSheet = false
 			} else {
 				// Create new sheet for other years
@@ -960,8 +961,7 @@ func (s *TableService) ExportTable(tableID string, years []int) (*dto.TableExpor
 		}
 	} else {
 		// Standard table format for tables with 3+ dimensions
-		sheetName := table.Name
-		f.SetSheetName("Sheet1", sheetName)
+		sheetName := "Sheet1"
 		currentRow := 1
 
 		// Build headers
@@ -1055,4 +1055,25 @@ func (s *TableService) ExportTable(tableID string, years []int) (*dto.TableExpor
 		Name: filename,
 		File: file,
 	}, nil
+}
+
+// sanitizeSheetName ensures the sheet name is valid for Excel
+func sanitizeSheetName(name string) string {
+	// Replace invalid characters
+	invalidChars := []string{"\\", "/", "?", "*", "[", "]", ":"}
+	for _, char := range invalidChars {
+		name = strings.ReplaceAll(name, char, "_")
+	}
+
+	// Truncate to 31 characters (Excel limit)
+	if len(name) > 31 {
+		name = name[:31]
+	}
+
+	// Ensure not empty
+	if name == "" {
+		name = "Sheet"
+	}
+
+	return name
 }
