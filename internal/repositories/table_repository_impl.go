@@ -693,8 +693,13 @@ func (j *TableRepositoryImpl) FindAll() ([]*models.Table, error) {
 func (j *TableRepositoryImpl) FindForFactUpdate(id string) (*models.Table, error) {
 	var table models.Table
 	if err := j.db.
-		Preload("Dimensions.Dimension.Values", func(db *gorm.DB) *gorm.DB {
-			return db.Order(`"order" ASC`)
+		// Preload("Dimensions.Dimension.Values", func(db *gorm.DB) *gorm.DB {
+		// 	return db.Order(`"order" ASC`)
+		// }).
+		Preload("Dimensions", func(db *gorm.DB) *gorm.DB {
+			return db.Order(`"order" ASC`).Preload("Dimension.Values", func(db2 *gorm.DB) *gorm.DB {
+				return db2.Order(`"order" ASC`)
+			})
 		}).
 		Where("id = ?", id).
 		First(&table).Error; err != nil {
@@ -715,8 +720,13 @@ func (j *TableRepositoryImpl) FindDetailedByID(id string) (*models.Table, error)
 		Preload("Indicator").
 		Preload("Facts.FactDimensionValues.DimensionValue.Dimension").
 		Preload("Organization").
-		Preload("Dimensions.Dimension.Values", func(db *gorm.DB) *gorm.DB {
-			return db.Order(`"order" ASC`)
+		// Preload("Dimensions.Dimension.Values", func(db *gorm.DB) *gorm.DB {
+		// 	return db.Order(`"order" ASC`)
+		// }).
+		Preload("Dimensions", func(db *gorm.DB) *gorm.DB {
+			return db.Order(`"order" ASC`).Preload("Dimension.Values", func(db2 *gorm.DB) *gorm.DB {
+				return db2.Order(`"order" ASC`)
+			})
 		}).
 		Where("id = ?", id).
 		First(&table).Error; err != nil {
@@ -732,8 +742,13 @@ func (j *TableRepositoryImpl) FindByIDAndYear(id string, year int) (*models.Tabl
 		Preload("Facts", "year = ?", year).
 		Preload("Organization").
 		Preload("Facts.FactDimensionValues.DimensionValue.Dimension").
-		Preload("Dimensions.Dimension.Values", func(db *gorm.DB) *gorm.DB {
-			return db.Order(`"order" ASC`)
+		// Preload("Dimensions.Dimension.Values", func(db *gorm.DB) *gorm.DB {
+		// 	return db.Order(`"order" ASC`)
+		// }).
+		Preload("Dimensions", func(db *gorm.DB) *gorm.DB {
+			return db.Order(`"order" ASC`).Preload("Dimension.Values", func(db2 *gorm.DB) *gorm.DB {
+				return db2.Order(`"order" ASC`)
+			})
 		}).
 		Where("id = ?", id).
 		First(&table).Error; err != nil {
@@ -749,8 +764,13 @@ func (j *TableRepositoryImpl) FindByIDAndMultiYear(id string, year []int) (*mode
 		Preload("Facts", "year IN ?", year).
 		Preload("Organization").
 		Preload("Facts.FactDimensionValues.DimensionValue.Dimension").
-		Preload("Dimensions.Dimension.Values", func(db *gorm.DB) *gorm.DB {
-			return db.Order(`"order" ASC`)
+		// Preload("Dimensions.Dimension.Values", func(db *gorm.DB) *gorm.DB {
+		// 	return db.Order(`"order" ASC`)
+		// }).
+		Preload("Dimensions", func(db *gorm.DB) *gorm.DB {
+			return db.Order(`"order" ASC`).Preload("Dimension.Values", func(db2 *gorm.DB) *gorm.DB {
+				return db2.Order(`"order" ASC`)
+			})
 		}).
 		Where("id = ?", id).
 		First(&table).Error; err != nil {

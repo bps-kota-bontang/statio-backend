@@ -23,7 +23,7 @@ func (s *DimensionService) GetAll() ([]*dto.DimensionResponse, error) {
 
 	responses := make([]*dto.DimensionResponse, 0, len(dimensions))
 	for _, dimension := range dimensions {
-		responses = append(responses, mappers.ToDimensionResponse(dimension))
+		responses = append(responses, mappers.ToDimensionResponse(dimension, nil))
 	}
 
 	return responses, nil
@@ -49,7 +49,7 @@ func (s *DimensionService) GetAllPaginated(
 
 	responses := make([]*dto.DimensionResponse, 0, len(dimensions))
 	for _, dimension := range dimensions {
-		responses = append(responses, mappers.ToDimensionResponse(dimension))
+		responses = append(responses, mappers.ToDimensionResponse(dimension, nil))
 	}
 
 	return responses, total, nil
@@ -75,7 +75,7 @@ func (s *DimensionService) GetByID(id string) (*dto.DimensionResponse, error) {
 		return nil, err
 	}
 
-	response := mappers.ToDimensionResponse(dimension)
+	response := mappers.ToDimensionResponse(dimension, nil)
 	return response, nil
 }
 
@@ -85,7 +85,7 @@ func (s *DimensionService) Create(input *dto.CreateDimensionRequest) (*dto.Dimen
 		return nil, err
 	}
 
-	response := mappers.ToDimensionResponse(dimension)
+	response := mappers.ToDimensionResponse(dimension, nil)
 	return response, nil
 }
 
@@ -100,7 +100,7 @@ func (s *DimensionService) Update(id string, input *dto.UpdateDimensionRequest) 
 		return nil, err
 	}
 
-	response := mappers.ToDimensionResponse(dimension)
+	response := mappers.ToDimensionResponse(dimension, nil)
 	return response, nil
 }
 

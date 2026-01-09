@@ -28,7 +28,7 @@ func ToTableResponse(table *models.Table, year *int) *dto.TableResponse {
 			continue
 		}
 
-		resp.Dimensions = append(resp.Dimensions, *ToDimensionResponse(td.Dimension))
+		resp.Dimensions = append(resp.Dimensions, *ToDimensionResponse(td.Dimension, &td.Order))
 
 		dimensionNames = append(dimensionNames, td.Dimension.Name)
 	}
