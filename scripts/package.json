@@ -1,0 +1,18 @@
+{
+  "name": "statio-xlsx-converter",
+  "version": "1.0.0",
+  "description": "XLSX to XLS converter service for Statio backend",
+  "main": "xlsx-to-xls.js",
+  "scripts": {
+    "convert": "node xlsx-to-xls.js"
+  },
+  "dependencies": {
+    "cfb": "^1.2.2",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "author": "BPS Kota Bontang",
+  "license": "MIT"
+}

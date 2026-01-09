@@ -11,10 +11,16 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-type ExcelService struct{}
+type ExcelService struct {
+	xlsxConverter *XLSXConverterService
+}
 
 func NewExcelService() *ExcelService {
-	return &ExcelService{}
+	// Initialize XLSX converter (ignore error for now, will handle at runtime)
+	converter, _ := NewXLSXConverterService()
+	return &ExcelService{
+		xlsxConverter: converter,
+	}
 }
 
 // ExportToXLSX exports table data to Excel .xlsx format
@@ -66,10 +72,26 @@ func (s *ExcelService) ExportToXLSX(table *dto.TableResponse, years []int) ([]by
 }
 
 // ExportToXLS exports table data to Excel .xls format (legacy)
+// Uses Node.js + SheetJS for conversion via IPC
 func (s *ExcelService) ExportToXLS(table *dto.TableResponse, years []int) ([]byte, error) {
-	// For now, export as XLSX - browsers can still open it
-	// TODO: Implement true .xls format using a different library if needed
-	return s.ExportToXLSX(table, years)
+	// Step 1: Generate XLSX data
+	xlsxData, err := s.ExportToXLSX(table, years)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate XLSX: %w", err)
+	}
+
+	// Step 2: Check if converter is available
+	if s.xlsxConverter == nil {
+		return nil, fmt.Errorf("XLS converter not available - Node.js may not be installed")
+	}
+
+	// Step 3: Convert XLSX to XLS using Node.js subprocess
+	xlsData, err := s.xlsxConverter.ConvertXLSXToXLS(xlsxData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert XLSX to XLS: %w", err)
+	}
+
+	return xlsData, nil
 }
 
 // createStyles creates header and data cell styles
