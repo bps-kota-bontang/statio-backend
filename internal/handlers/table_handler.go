@@ -668,14 +668,33 @@ func (h *TableHandler) ExportTable(c *fiber.Ctx) error {
 		})
 	}
 
-	yearParam := c.QueryInt("year")
+	// Get multiple years from query parameter
+	yearParams := c.Context().QueryArgs().PeekMulti("years")
 
-	var year int = time.Now().Year() - 1
-	if yearParam != 0 {
-		year = yearParam
+	var years []int
+	if len(yearParams) > 0 {
+		// Parse each year parameter
+		for _, yearParam := range yearParams {
+			yearStr := string(yearParam)
+			year := 0
+			// Simple string to int conversion
+			for _, ch := range yearStr {
+				if ch >= '0' && ch <= '9' {
+					year = year*10 + int(ch-'0')
+				}
+			}
+			if year > 0 {
+				years = append(years, year)
+			}
+		}
 	}
 
-	data, err := h.service.ExportTable(id, year)
+	// If no years provided, default to last year
+	if len(years) == 0 {
+		years = []int{time.Now().Year() - 1}
+	}
+
+	data, err := h.service.ExportTable(id, years)
 	if err != nil {
 		status := 500
 		if err == gorm.ErrRecordNotFound {

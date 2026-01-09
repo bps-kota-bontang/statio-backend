@@ -741,3 +741,20 @@ func (j *TableRepositoryImpl) FindByIDAndYear(id string, year int) (*models.Tabl
 	}
 	return &table, nil
 }
+
+func (j *TableRepositoryImpl) FindByIDAndMultiYear(id string, year []int) (*models.Table, error) {
+	var table models.Table
+	if err := j.db.
+		Preload("Indicator").
+		Preload("Facts", "year IN ?", year).
+		Preload("Organization").
+		Preload("Facts.FactDimensionValues.DimensionValue.Dimension").
+		Preload("Dimensions.Dimension.Values", func(db *gorm.DB) *gorm.DB {
+			return db.Order(`"order" ASC`)
+		}).
+		Where("id = ?", id).
+		First(&table).Error; err != nil {
+		return nil, err
+	}
+	return &table, nil
+}
