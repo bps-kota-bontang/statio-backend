@@ -26,19 +26,16 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o statio-worker ./cmd/worker
 
 # =========================
-# Stage 2: Final Stage (Minimal)
+# Stage 2: Final Stage (Bun Runtime)
 # =========================
-FROM alpine:3.22
+FROM oven/bun:alpine
 
 # build hash or commit info
 ARG BUILD_HASH
 ENV APP_BUILD=${BUILD_HASH}
 
-# Install runtime dependencies: SSL certificates and Bun for XLS converter
-RUN apk add --no-cache ca-certificates curl unzip bash libstdc++ libgcc \
-    && curl -fsSL https://bun.sh/install | bash \
-    && ln -s /root/.bun/bin/bun /usr/local/bin/bun \
-    && apk del bash curl unzip
+# Install SSL certificates
+RUN apk add --no-cache ca-certificates
 
 # Add non-root user
 RUN adduser -D -g '' statio
@@ -53,7 +50,7 @@ COPY --from=builder /app/statio-worker .
 COPY --chown=statio:statio scripts/xlsx-to-xls.js ./scripts/
 COPY --chown=statio:statio scripts/package.json ./scripts/
 
-# Install dependencies with Bun (much faster than npm)
+# Install dependencies with Bun
 RUN cd scripts && bun install --production && cd ..
 
 # Switch to non-root user
