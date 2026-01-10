@@ -31,9 +31,21 @@ func ToDimensionNameResponse(dimension *models.Dimension) *dto.DimensionNameResp
 // ToDimensionValueResponse mengubah models.DimensionValue menjadi dto.DimensionValueResponse
 func ToDimensionValueResponse(dv *models.DimensionValue) *dto.DimensionValueResponse {
 	return &dto.DimensionValueResponse{
-		ID:    dv.ID,
-		Name:  dv.Name,
-		Order: dv.Order,
+		ID:     dv.ID,
+		Name:   dv.Name,
+		Order:  dv.Order,
+		Parent: ToParentDimensionValueResponse(dv.Parent),
+	}
+}
+
+// ToParentDimensionValueResponse mengubah models.DimensionValue menjadi dto.ParentDimensionValueResponse
+func ToParentDimensionValueResponse(dv *models.DimensionValue) *dto.ParentDimensionValueResponse {
+	if dv == nil {
+		return nil
+	}
+	return &dto.ParentDimensionValueResponse{
+		ID:   dv.ID,
+		Name: dv.Name,
 	}
 }
 

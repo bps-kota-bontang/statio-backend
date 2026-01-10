@@ -1,9 +1,15 @@
 package dto
 
+type ParentDimensionValueResponse struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 type DimensionValueResponse struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Order int    `json:"order"`
+	ID     string                        `json:"id"`
+	Name   string                        `json:"name"`
+	Order  int                           `json:"order"`
+	Parent *ParentDimensionValueResponse `json:"parent,omitempty"`
 }
 
 type DimensionResponse struct {

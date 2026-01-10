@@ -11,7 +11,10 @@ type DimensionValue struct {
 	DimensionID string               `gorm:"type:uuid;not null;index"`
 	Name        string               `gorm:"type:text;not null"`
 	Order       int                  `gorm:"type:int;default:0"`
+	ParentID    *string              `gorm:"type:uuid;index"`
 	Dimension   *Dimension           `gorm:"foreignKey:DimensionID;constraint:OnDelete:CASCADE"`
+	Parent      *DimensionValue      `gorm:"foreignKey:ParentID"`
+	Children    []DimensionValue     `gorm:"foreignKey:ParentID"`
 	FactValues  []FactDimensionValue `gorm:"foreignKey:DimensionValueID;constraint:OnDelete:CASCADE"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
