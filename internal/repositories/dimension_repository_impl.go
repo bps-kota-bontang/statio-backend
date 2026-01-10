@@ -295,6 +295,15 @@ func (r *DimensionRepositoryImpl) FindParentValueIDs(dimensionID string) ([]stri
 	return parentIDs, nil
 }
 
+// FindDimensionByID implements DimensionRepository - loads dimension without values.
+func (r *DimensionRepositoryImpl) FindDimensionByID(id string) (*models.Dimension, error) {
+	var dimension models.Dimension
+	if err := r.db.Where("id = ?", id).First(&dimension).Error; err != nil {
+		return nil, err
+	}
+	return &dimension, nil
+}
+
 func NewDimensionRepository(db *gorm.DB) DimensionRepository {
 	return &DimensionRepositoryImpl{db: db}
 }

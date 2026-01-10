@@ -14,6 +14,7 @@ type DimensionRepository interface {
 	FindAllNames() ([]*models.Dimension, error)
 	FindByID(id string) (*models.Dimension, error)
 	FindByIDWithValues(id string) (*models.Dimension, error)
+	FindDimensionByID(id string) (*models.Dimension, error)
 	FindParentValueIDs(dimensionID string) ([]string, error)
 	Create(dimension *models.Dimension) error
 	Update(dimension *models.Dimension) error

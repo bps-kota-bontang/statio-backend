@@ -202,8 +202,8 @@ func (s *AggregationService) findOrCreateParentTableMultiDim(
 		parentDimID := s.getParentDimensionID(info.Dimension, info.ParentValueIDs)
 		if parentDimID != "" {
 			// Load parent dimension to get its name
-			var parentDim models.Dimension
-			if err := s.db.Where("id = ?", parentDimID).First(&parentDim).Error; err != nil {
+			parentDim, err := s.dimensionRepo.FindDimensionByID(parentDimID)
+			if err != nil {
 				log.Printf("Warning: failed to load parent dimension: %v", err)
 				dimNameReplacements[childDimName] = childDimName // fallback to child name
 			} else {
@@ -216,28 +216,6 @@ func (s *AggregationService) findOrCreateParentTableMultiDim(
 	}
 
 	parentTableName := s.generateParentTableNameMultiDim(childTable.Name, dimNameReplacements)
-
-	// Simpan child table ID di Notes untuk traceability
-	childTableIDNote := fmt.Sprintf("Generated from child table ID: %s", childTable.ID)
-	if childTable.Notes != nil && *childTable.Notes != "" {
-		combined := fmt.Sprintf("%s\n\n%s", childTableIDNote, *childTable.Notes)
-		childTableIDNote = combined
-	}
-
-	// Untuk saat ini, kita buat table baru
-	parentTable := &models.Table{
-		Name:           parentTableName,
-		Direction:      childTable.Direction,
-		Description:    s.generateParentDescriptionMultiDim(childTable, dimNameReplacements),
-		IndicatorID:    childTable.IndicatorID,
-		OrganizationID: childTable.OrganizationID,
-		Labels:         childTable.Labels,
-		Notes:          &childTableIDNote,
-		Status:         "draft",
-		IsLocked:       false,
-		IsAggregated:   true,
-		SourceTableID:  &childTable.ID,
-	}
 
 	// Build parent dimensions - gunakan parent dimension jika ada
 	var parentDimensions []models.TableDimension
@@ -263,8 +241,52 @@ func (s *AggregationService) findOrCreateParentTableMultiDim(
 		})
 	}
 
+	// Check apakah parent table sudah ada dengan source_table_id yang sama
+	existingParentTables, err := s.tableRepo.FindAllBySourceTableID(childTable.ID)
+
+	if err == nil && len(existingParentTables) > 0 {
+		// Cari table yang dimensions-nya match
+		for _, existingTable := range existingParentTables {
+			if s.isDimensionsMatch(existingTable.Dimensions, parentDimensions) {
+				log.Printf("Found existing parent table: %s (ID: %s), will update facts only", existingTable.Name, existingTable.ID)
+
+				// Delete old facts
+				if err := s.deleteTableFacts(existingTable); err != nil {
+					return nil, false, fmt.Errorf("failed to delete old facts: %w", err)
+				}
+
+				return existingTable, false, nil
+			}
+		}
+		log.Printf("Found %d parent table(s) but none with matching dimensions, creating new table", len(existingParentTables))
+	} else if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, false, fmt.Errorf("failed to check existing parent table: %w", err)
+	}
+
+	// Simpan child table ID di Notes untuk traceability
+	childTableIDNote := fmt.Sprintf("Generated from child table ID: %s", childTable.ID)
+	if childTable.Notes != nil && *childTable.Notes != "" {
+		combined := fmt.Sprintf("%s\n\n%s", childTableIDNote, *childTable.Notes)
+		childTableIDNote = combined
+	}
+
+	// Buat table baru
+	parentTable := &models.Table{
+		Name:           parentTableName,
+		Direction:      childTable.Direction,
+		Description:    s.generateParentDescriptionMultiDim(childTable, dimNameReplacements),
+		IndicatorID:    childTable.IndicatorID,
+		OrganizationID: childTable.OrganizationID,
+		Labels:         childTable.Labels,
+		Notes:          &childTableIDNote,
+		Status:         "draft",
+		IsLocked:       false,
+		IsAggregated:   true,
+		SourceTableID:  &childTable.ID,
+	}
+
 	// Mulai transaction
-	tx := s.db.Begin()
+	tx := s.tableRepo.BeginTx()
 	if tx.Error != nil {
 		return nil, false, tx.Error
 	}
@@ -278,7 +300,7 @@ func (s *AggregationService) findOrCreateParentTableMultiDim(
 	// Simpan table dimensions
 	for i := range parentDimensions {
 		parentDimensions[i].TableID = parentTable.ID
-		if err := tx.Create(&parentDimensions[i]).Error; err != nil {
+		if err := s.tableRepo.CreateTableDimensionWithTx(tx, &parentDimensions[i]); err != nil {
 			tx.Rollback()
 			return nil, false, fmt.Errorf("failed to create table dimension: %w", err)
 		}
@@ -338,7 +360,7 @@ func (s *AggregationService) findOrCreateParentTable(
 	}
 
 	// Mulai transaction
-	tx := s.db.Begin()
+	tx := s.tableRepo.BeginTx()
 	if tx.Error != nil {
 		return nil, false, tx.Error
 	}
@@ -352,7 +374,7 @@ func (s *AggregationService) findOrCreateParentTable(
 	// Simpan table dimensions
 	for i := range parentDimensions {
 		parentDimensions[i].TableID = parentTable.ID
-		if err := tx.Create(&parentDimensions[i]).Error; err != nil {
+		if err := s.tableRepo.CreateTableDimensionWithTx(tx, &parentDimensions[i]); err != nil {
 			tx.Rollback()
 			return nil, false, fmt.Errorf("failed to create table dimension: %w", err)
 		}
@@ -408,10 +430,8 @@ func (s *AggregationService) aggregateAndSaveFactsMultiDim(
 
 	// Map fact_id -> []FactDimensionValue
 	factDimValuesMap := make(map[string][]models.FactDimensionValue)
-	var allFactDimValues []models.FactDimensionValue
-	if err := s.db.Where("fact_id IN ?", childFactIDs).
-		Preload("DimensionValue").
-		Find(&allFactDimValues).Error; err != nil {
+	allFactDimValues, err := s.factRepo.FindFactDimensionValuesByFactIDs(childFactIDs)
+	if err != nil {
 		return fmt.Errorf("failed to load fact dimension values: %w", err)
 	}
 
@@ -474,7 +494,7 @@ func (s *AggregationService) aggregateAndSaveFactsMultiDim(
 	}
 
 	// Aggregate dan simpan facts
-	tx := s.db.Begin()
+	tx := s.factRepo.BeginTx()
 	if tx.Error != nil {
 		return tx.Error
 	}
@@ -506,7 +526,7 @@ func (s *AggregationService) aggregateAndSaveFactsMultiDim(
 			parentFact.OldValue = &totalOldValue
 		}
 
-		if err := tx.Create(&parentFact).Error; err != nil {
+		if err := s.factRepo.CreateFactWithTx(tx, &parentFact); err != nil {
 			tx.Rollback()
 			return fmt.Errorf("failed to create parent fact: %w", err)
 		}
@@ -522,7 +542,7 @@ func (s *AggregationService) aggregateAndSaveFactsMultiDim(
 					FactID:           parentFact.ID,
 					DimensionValueID: parentValID,
 				}
-				if err := tx.Create(&parentFactDimVal).Error; err != nil {
+				if err := s.factRepo.CreateFactDimensionValueWithTx(tx, &parentFactDimVal); err != nil {
 					tx.Rollback()
 					return fmt.Errorf("failed to create parent fact dimension value: %w", err)
 				}
@@ -537,7 +557,7 @@ func (s *AggregationService) aggregateAndSaveFactsMultiDim(
 					FactID:           parentFact.ID,
 					DimensionValueID: dimValID,
 				}
-				if err := tx.Create(&otherFactDimVal).Error; err != nil {
+				if err := s.factRepo.CreateFactDimensionValueWithTx(tx, &otherFactDimVal); err != nil {
 					tx.Rollback()
 					return fmt.Errorf("failed to create fact dimension value: %w", err)
 				}
@@ -579,10 +599,8 @@ func (s *AggregationService) aggregateAndSaveFacts(
 
 	// Map fact_id -> []FactDimensionValue
 	factDimValuesMap := make(map[string][]models.FactDimensionValue)
-	var allFactDimValues []models.FactDimensionValue
-	if err := s.db.Where("fact_id IN ?", childFactIDs).
-		Preload("DimensionValue").
-		Find(&allFactDimValues).Error; err != nil {
+	allFactDimValues, err := s.factRepo.FindFactDimensionValuesByFactIDs(childFactIDs)
+	if err != nil {
 		return fmt.Errorf("failed to load fact dimension values: %w", err)
 	}
 
@@ -639,7 +657,7 @@ func (s *AggregationService) aggregateAndSaveFacts(
 	}
 
 	// Aggregate dan simpan facts
-	tx := s.db.Begin()
+	tx := s.factRepo.BeginTx()
 	if tx.Error != nil {
 		return tx.Error
 	}
@@ -671,7 +689,7 @@ func (s *AggregationService) aggregateAndSaveFacts(
 			parentFact.OldValue = &totalOldValue
 		}
 
-		if err := tx.Create(&parentFact).Error; err != nil {
+		if err := s.factRepo.CreateFactWithTx(tx, &parentFact); err != nil {
 			tx.Rollback()
 			return fmt.Errorf("failed to create parent fact: %w", err)
 		}
@@ -682,7 +700,7 @@ func (s *AggregationService) aggregateAndSaveFacts(
 			FactID:           parentFact.ID,
 			DimensionValueID: key.parentID,
 		}
-		if err := tx.Create(&parentFactDimVal).Error; err != nil {
+		if err := s.factRepo.CreateFactDimensionValueWithTx(tx, &parentFactDimVal); err != nil {
 			tx.Rollback()
 			return fmt.Errorf("failed to create parent fact dimension value: %w", err)
 		}
@@ -695,7 +713,7 @@ func (s *AggregationService) aggregateAndSaveFacts(
 					FactID:           parentFact.ID,
 					DimensionValueID: dimValID,
 				}
-				if err := tx.Create(&otherFactDimVal).Error; err != nil {
+				if err := s.factRepo.CreateFactDimensionValueWithTx(tx, &otherFactDimVal); err != nil {
 					tx.Rollback()
 					return fmt.Errorf("failed to create fact dimension value: %w", err)
 				}
@@ -769,6 +787,64 @@ func (s *AggregationService) buildResponseMessage(isNewTable bool, tableName str
 	return fmt.Sprintf("Parent table '%s' berhasil diupdate dengan data agregasi terbaru", tableName)
 }
 
+// isDimensionsMatch memeriksa apakah dimensions dari dua table match
+func (s *AggregationService) isDimensionsMatch(existingDims []models.TableDimension, newDims []models.TableDimension) bool {
+	if len(existingDims) != len(newDims) {
+		return false
+	}
+
+	// Sort by order untuk memastikan perbandingan yang benar
+	existingMap := make(map[int]string)
+	newMap := make(map[int]string)
+
+	for _, d := range existingDims {
+		existingMap[d.Order] = d.DimensionID
+	}
+
+	for _, d := range newDims {
+		newMap[d.Order] = d.DimensionID
+	}
+
+	for order, dimID := range existingMap {
+		if newMap[order] != dimID {
+			return false
+		}
+	}
+
+	return true
+}
+
+// deleteTableFacts menghapus semua facts dari table
+func (s *AggregationService) deleteTableFacts(table *models.Table) error {
+	// Get all facts
+	facts, err := s.factRepo.FindFactsByTableID(table.ID)
+	if err != nil {
+		return fmt.Errorf("failed to find facts: %w", err)
+	}
+
+	if len(facts) == 0 {
+		return nil
+	}
+
+	factIDs := make([]string, len(facts))
+	for i, f := range facts {
+		factIDs[i] = f.ID
+	}
+
+	// Delete fact dimension values first
+	if err := s.factRepo.DeleteFactDimensionValuesByFactIDs(factIDs); err != nil {
+		return fmt.Errorf("failed to delete fact dimension values: %w", err)
+	}
+
+	// Delete facts
+	if err := s.factRepo.DeleteFactsByIDs(factIDs); err != nil {
+		return fmt.Errorf("failed to delete facts: %w", err)
+	}
+
+	log.Printf("Deleted %d facts from table %s", len(facts), table.ID)
+	return nil
+}
+
 // getParentDimensionID mendapatkan parent dimension ID jika parent values berada di dimension berbeda
 func (s *AggregationService) getParentDimensionID(dimension *models.Dimension, parentValueIDs []string) string {
 	if len(parentValueIDs) == 0 {
@@ -776,8 +852,8 @@ func (s *AggregationService) getParentDimensionID(dimension *models.Dimension, p
 	}
 
 	// Ambil parent dimension value pertama untuk cek
-	var parentValue models.DimensionValue
-	if err := s.db.Where("id = ?", parentValueIDs[0]).First(&parentValue).Error; err != nil {
+	parentValue, err := s.factRepo.FindDimensionValueByID(parentValueIDs[0])
+	if err != nil {
 		log.Printf("Warning: failed to load parent dimension value: %v", err)
 		return ""
 	}

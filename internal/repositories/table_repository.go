@@ -34,4 +34,8 @@ type TableRepository interface {
 	FindAllLabels() ([]*string, error)
 	FindByIDs(tableIDs []string) ([]*models.Table, error)
 	FindTablesBase(filter *dto.FilterTablesRequest) ([]*models.Table, error)
+	FindBySourceTableID(sourceTableID string) (*models.Table, error)
+	FindAllBySourceTableID(sourceTableID string) ([]*models.Table, error)
+	CreateTableDimensionWithTx(tx *gorm.DB, td *models.TableDimension) error
+	BeginTx() *gorm.DB
 }

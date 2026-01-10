@@ -732,6 +732,38 @@ func NewTableRepository(db *gorm.DB) TableRepository {
 	}
 }
 
+// BeginTx implements TableRepository.
+func (r *TableRepositoryImpl) BeginTx() *gorm.DB {
+	return r.db.Begin()
+}
+
+// CreateTableDimensionWithTx implements TableRepository.
+func (r *TableRepositoryImpl) CreateTableDimensionWithTx(tx *gorm.DB, td *models.TableDimension) error {
+	return tx.Create(td).Error
+}
+
+// FindBySourceTableID implements TableRepository.
+func (r *TableRepositoryImpl) FindBySourceTableID(sourceTableID string) (*models.Table, error) {
+	var table models.Table
+	if err := r.db.Preload("Dimensions").
+		Where("source_table_id = ? AND is_aggregated = ?", sourceTableID, true).
+		First(&table).Error; err != nil {
+		return nil, err
+	}
+	return &table, nil
+}
+
+// FindAllBySourceTableID implements TableRepository.
+func (r *TableRepositoryImpl) FindAllBySourceTableID(sourceTableID string) ([]*models.Table, error) {
+	var tables []*models.Table
+	if err := r.db.Preload("Dimensions").
+		Where("source_table_id = ? AND is_aggregated = ?", sourceTableID, true).
+		Find(&tables).Error; err != nil {
+		return nil, err
+	}
+	return tables, nil
+}
+
 func (j *TableRepositoryImpl) FindDetailedByID(id string) (*models.Table, error) {
 	var table models.Table
 	if err := j.db.

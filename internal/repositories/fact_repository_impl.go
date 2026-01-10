@@ -132,6 +132,60 @@ func NewFactRepository(db *gorm.DB) FactRepository {
 	}
 }
 
+// BeginTx implements FactRepository.
+func (r *FactRepositoryImpl) BeginTx() *gorm.DB {
+	return r.db.Begin()
+}
+
+// FindFactDimensionValuesByFactIDs implements FactRepository.
+func (r *FactRepositoryImpl) FindFactDimensionValuesByFactIDs(factIDs []string) ([]models.FactDimensionValue, error) {
+	var fdvs []models.FactDimensionValue
+	if err := r.db.Where("fact_id IN ?", factIDs).
+		Preload("DimensionValue").
+		Find(&fdvs).Error; err != nil {
+		return nil, err
+	}
+	return fdvs, nil
+}
+
+// FindFactsByTableID implements FactRepository.
+func (r *FactRepositoryImpl) FindFactsByTableID(tableID string) ([]models.Fact, error) {
+	var facts []models.Fact
+	if err := r.db.Where("table_id = ?", tableID).Find(&facts).Error; err != nil {
+		return nil, err
+	}
+	return facts, nil
+}
+
+// DeleteFactDimensionValuesByFactIDs implements FactRepository.
+func (r *FactRepositoryImpl) DeleteFactDimensionValuesByFactIDs(factIDs []string) error {
+	return r.db.Where("fact_id IN ?", factIDs).Delete(&models.FactDimensionValue{}).Error
+}
+
+// DeleteFactsByIDs implements FactRepository.
+func (r *FactRepositoryImpl) DeleteFactsByIDs(factIDs []string) error {
+	return r.db.Where("id IN ?", factIDs).Delete(&models.Fact{}).Error
+}
+
+// CreateFactWithTx implements FactRepository.
+func (r *FactRepositoryImpl) CreateFactWithTx(tx *gorm.DB, fact *models.Fact) error {
+	return tx.Create(fact).Error
+}
+
+// CreateFactDimensionValueWithTx implements FactRepository.
+func (r *FactRepositoryImpl) CreateFactDimensionValueWithTx(tx *gorm.DB, fdv *models.FactDimensionValue) error {
+	return tx.Create(fdv).Error
+}
+
+// FindDimensionValueByID implements FactRepository.
+func (r *FactRepositoryImpl) FindDimensionValueByID(id string) (*models.DimensionValue, error) {
+	var dv models.DimensionValue
+	if err := r.db.Where("id = ?", id).First(&dv).Error; err != nil {
+		return nil, err
+	}
+	return &dv, nil
+}
+
 // ResetOutliersByTable implements FactRepository.
 func (f *FactRepositoryImpl) ResetOutliersByTable(tableID string) error {
 	return f.db.Model(&models.Fact{}).

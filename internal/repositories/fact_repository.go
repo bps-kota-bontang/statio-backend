@@ -23,4 +23,12 @@ type FactRepository interface {
 	UpdateFact(fact *models.Fact) error
 	ResetOutliersByTable(tableID string) error
 	CommitByTable(tableID string) error
+	FindFactDimensionValuesByFactIDs(factIDs []string) ([]models.FactDimensionValue, error)
+	FindFactsByTableID(tableID string) ([]models.Fact, error)
+	DeleteFactDimensionValuesByFactIDs(factIDs []string) error
+	DeleteFactsByIDs(factIDs []string) error
+	CreateFactWithTx(tx *gorm.DB, fact *models.Fact) error
+	CreateFactDimensionValueWithTx(tx *gorm.DB, fdv *models.FactDimensionValue) error
+	BeginTx() *gorm.DB
+	FindDimensionValueByID(id string) (*models.DimensionValue, error)
 }
