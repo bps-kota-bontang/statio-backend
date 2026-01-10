@@ -20,6 +20,8 @@ type Table struct {
 	Notes          *string          `gorm:"type:text"`
 	IsLocked       bool             `gorm:"type:boolean;not null;default:false"`
 	Status         string           `gorm:"type:text;not null;default:'draft'"`
+	IsAggregated   bool             `gorm:"type:boolean;not null;default:false;index"` // Menandai table hasil agregasi
+	SourceTableID  *string          `gorm:"type:uuid;index"`                            // ID table sumber untuk table agregasi
 	Dimensions     []TableDimension `gorm:"foreignKey:TableID;constraint:OnDelete:CASCADE"`
 	Facts          []Fact           `gorm:"foreignKey:TableID;constraint:OnDelete:CASCADE"`
 	CreatedAt      time.Time

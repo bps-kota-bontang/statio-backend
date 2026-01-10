@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"statio/internal/dto"
 	"statio/internal/services"
 	"statio/utils"
@@ -45,6 +46,7 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 		"outlier_facts",
 		"revision_facts",
 		"status",
+		"is_aggregated",
 	}
 	for _, key := range keys {
 		// c.Context().QueryArgs().PeekMulti(key) mengembalikan [][]byte
@@ -61,6 +63,7 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 	if !utils.IsAdmin(roles) {
 		if organizationID != nil {
 			filters["organization_id"] = []string{*organizationID}
+			filters["is_aggregated"] = []string{"false"}
 		} else {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"data":    nil,
@@ -719,4 +722,53 @@ func (h *TableHandler) ExportTable(c *fiber.Ctx) error {
 	c.Set("Content-Type", contentType)
 	c.Status(200)
 	return c.Send(data.File)
+}
+
+func (h *TableHandler) GenerateParentTable(c *fiber.Ctx) error {
+	roles := c.Locals("roles").([]string)
+	id := c.Params("id")
+	var req dto.GenerateParentTableRequest
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to generate parent table",
+		})
+	}
+
+	// Parse request body
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid request body: " + err.Error(),
+		})
+	}
+
+	// Validate request
+	if err := h.validate.Struct(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Validation error: " + err.Error(),
+		})
+	}
+
+	// Generate parent table
+	response, err := h.service.GenerateParentTable(id, &req)
+	if err != nil {
+		log.Printf("Error generating parent table: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Failed to generate parent table: " + err.Error(),
+		})
+	}
+
+	statusCode := fiber.StatusCreated
+	if !response.IsNewTable {
+		statusCode = fiber.StatusOK
+	}
+
+	return c.Status(statusCode).JSON(fiber.Map{
+		"data":    response,
+		"message": response.Message,
+	})
 }

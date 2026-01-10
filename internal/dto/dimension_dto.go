@@ -19,6 +19,12 @@ type DimensionResponse struct {
 	Values []DimensionValueResponse `json:"values"`
 }
 
+type DimensionListResponse struct {
+	ID                 string `json:"id"`
+	Name               string `json:"name"`
+	HasParentDimension bool   `json:"has_parent_dimension"`
+}
+
 type DimensionNameResponse struct {
 	Name string `json:"name"`
 }

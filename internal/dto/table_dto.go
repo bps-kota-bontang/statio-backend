@@ -1,31 +1,34 @@
 package dto
 
 type TableResponse struct {
-	ID           string                `json:"id"`
-	Name         string                `json:"name"`
-	Direction    int                   `json:"direction"`
-	Description  *string               `json:"description,omitempty"`
-	Indicator    *IndicatorResponse    `json:"indicator"`
-	Organization *OrganizationResponse `json:"organization"`
-	Labels       []string              `json:"labels"`
-	Notes        *string               `json:"notes"`
-	IsLocked     bool                  `json:"is_locked"`
-	Status       string                `json:"status"`
-	Dimensions   []DimensionResponse   `json:"dimensions"`
-	Facts        []FactResponse        `json:"facts"`
+	ID                 string                `json:"id"`
+	Name               string                `json:"name"`
+	Direction          int                   `json:"direction"`
+	Description        *string               `json:"description,omitempty"`
+	Indicator          *IndicatorResponse    `json:"indicator"`
+	Organization       *OrganizationResponse `json:"organization"`
+	Labels             []string              `json:"labels"`
+	Notes              *string               `json:"notes"`
+	IsLocked           bool                  `json:"is_locked"`
+	Status             string                `json:"status"`
+	HasParentDimension bool                  `json:"has_parent_dimension"`
+	Dimensions         []DimensionResponse   `json:"dimensions"`
+	Facts              []FactResponse        `json:"facts"`
 }
 
 type TableListResponse struct {
-	ID                  string                 `json:"id"`
-	Name                string                 `json:"name"`
-	Indicator           *IndicatorListResponse `json:"indicator"`
-	Organization        *OrganizationResponse  `json:"organization"`
-	Labels              []string               `json:"labels"`
-	Notes               *string                `json:"notes"`
-	IsLocked            bool                   `json:"is_locked"`
-	Status              string                 `json:"status"`
-	Dimensions          []string               `json:"dimensions"`
-	InsightFactsSummary *SummaryInsightFacts   `json:"insight_facts_summary"`
+	ID                  string                  `json:"id"`
+	Name                string                  `json:"name"`
+	Indicator           *IndicatorListResponse  `json:"indicator"`
+	Organization        *OrganizationResponse   `json:"organization"`
+	Labels              []string                `json:"labels"`
+	Notes               *string                 `json:"notes"`
+	IsLocked            bool                    `json:"is_locked"`
+	IsAggregated        bool                    `json:"is_aggregated"`
+	Status              string                  `json:"status"`
+	HasParentDimension  bool                    `json:"has_parent_dimension"`
+	Dimensions          []DimensionListResponse `json:"dimensions"`
+	InsightFactsSummary *SummaryInsightFacts    `json:"insight_facts_summary"`
 }
 
 type CreateTableRequest struct {
@@ -86,4 +89,24 @@ type FilterTablesRequest struct {
 type TableExportResponse struct {
 	Name string `json:"name"`
 	File []byte `json:"file"`
+}
+
+type GenerateParentTableRequest struct {
+	DimensionIDs []string `json:"dimension_ids" binding:"required,min=1"` // Dimension IDs yang akan diagregasi (bisa lebih dari 1)
+}
+
+// GenerateParentTableResponse adalah response setelah generate parent table
+type GenerateParentTableResponse struct {
+	ParentTableID        string                    `json:"parent_table_id"`
+	IsNewTable           bool                      `json:"is_new_table"` // true jika tabel baru dibuat, false jika update existing
+	Message              string                    `json:"message"`
+	ChildTableID         string                    `json:"child_table_id"`
+	AggregatedDimensions []AggregatedDimensionInfo `json:"aggregated_dimensions"` // Info dimensions yang diagregasi
+}
+
+// AggregatedDimensionInfo adalah informasi dimension yang diagregasi
+type AggregatedDimensionInfo struct {
+	DimensionID      string `json:"dimension_id"`
+	DimensionName    string `json:"dimension_name"`
+	ParentValuesUsed int    `json:"parent_values_used"` // Jumlah parent values yang digunakan
 }

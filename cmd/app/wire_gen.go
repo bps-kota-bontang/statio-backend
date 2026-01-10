@@ -51,6 +51,7 @@ func InitializeApp() (*container.AppContainer, error) {
 	dimensionRepository := repositories.NewDimensionRepository(db)
 	dimensionService := services.NewDimensionService(dimensionRepository)
 	excelService := services.NewExcelService()
+	aggregationService := services.NewAggregationService(db, tableRepository, dimensionRepository, factRepository)
 	redisConfig, err := config.LoadRedisConfig()
 	if err != nil {
 		return nil, err
@@ -59,7 +60,7 @@ func InitializeApp() (*container.AppContainer, error) {
 	if err != nil {
 		return nil, err
 	}
-	tableService := services.NewTableService(tableRepository, factService, dimensionService, excelService, client, db)
+	tableService := services.NewTableService(tableRepository, factService, dimensionService, excelService, aggregationService, client, db)
 	tableHandler := handlers.NewTableHandler(tableService, validate)
 	indicatorRepository := repositories.NewIndicatorRepository(db)
 	indicatorService := services.NewIndicatorService(indicatorRepository)

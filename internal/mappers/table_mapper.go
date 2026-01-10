@@ -9,16 +9,17 @@ import (
 // ToTableResponse mengubah models.Table menjadi dto.TableResponse
 func ToTableResponse(table *models.Table, year *int) *dto.TableResponse {
 	resp := &dto.TableResponse{
-		ID:          table.ID,
-		Name:        table.Name,
-		Direction:   table.Direction,
-		Description: table.Description,
-		Labels:      table.Labels,
-		Notes:       table.Notes,
-		IsLocked:    table.IsLocked,
-		Status:      table.Status,
-		Dimensions:  []dto.DimensionResponse{},
-		Facts:       []dto.FactResponse{},
+		ID:                 table.ID,
+		Name:               table.Name,
+		Direction:          table.Direction,
+		Description:        table.Description,
+		Labels:             table.Labels,
+		Notes:              table.Notes,
+		IsLocked:           table.IsLocked,
+		Status:             table.Status,
+		HasParentDimension: false,
+		Dimensions:         []dto.DimensionResponse{},
+		Facts:              []dto.FactResponse{},
 	}
 
 	// Transform Dimensions
@@ -31,6 +32,16 @@ func ToTableResponse(table *models.Table, year *int) *dto.TableResponse {
 		resp.Dimensions = append(resp.Dimensions, *ToDimensionResponse(td.Dimension, &td.Order))
 
 		dimensionNames = append(dimensionNames, td.Dimension.Name)
+
+		// Check if any dimension value has parent
+		if !resp.HasParentDimension {
+			for _, val := range td.Dimension.Values {
+				if val.ParentID != nil {
+					resp.HasParentDimension = true
+					break
+				}
+			}
+		}
 	}
 
 	// Transform Indicator (hanya 1 indikator)
@@ -161,13 +172,15 @@ func TransformFactsWithBlanks(table *models.Table, year int) []dto.FactResponse 
 // ToTableListResponse mengubah models.Table menjadi dto.TableListResponse
 func ToTableListResponse(table *models.Table) *dto.TableListResponse {
 	resp := &dto.TableListResponse{
-		ID:         table.ID,
-		Name:       table.Name,
-		Labels:     table.Labels,
-		Notes:      table.Notes,
-		IsLocked:   table.IsLocked,
-		Status:     table.Status,
-		Dimensions: extractDimensionNames(table.Dimensions),
+		ID:                 table.ID,
+		Name:               table.Name,
+		Labels:             table.Labels,
+		Notes:              table.Notes,
+		IsLocked:           table.IsLocked,
+		IsAggregated:       table.IsAggregated,
+		Status:             table.Status,
+		HasParentDimension: hasParentDimension(table.Dimensions),
+		Dimensions:         extractDimension(table.Dimensions),
 	}
 
 	if table.Indicator != nil {
@@ -181,14 +194,33 @@ func ToTableListResponse(table *models.Table) *dto.TableListResponse {
 	return resp
 }
 
-func extractDimensionNames(dims []models.TableDimension) []string {
-	names := make([]string, 0, len(dims))
+func extractDimension(dims []models.TableDimension) []dto.DimensionListResponse {
+	names := make([]dto.DimensionListResponse, 0, len(dims))
 	for _, td := range dims {
 		if td.Dimension != nil {
-			names = append(names, td.Dimension.Name)
+			names = append(names, dto.DimensionListResponse{
+				ID:                 td.Dimension.ID,
+				Name:               td.Dimension.Name,
+				HasParentDimension: hasParentDimension([]models.TableDimension{td}),
+			})
 		}
 	}
 	return names
+}
+
+// hasParentDimension checks if any dimension value has a parent
+func hasParentDimension(dims []models.TableDimension) bool {
+	for _, td := range dims {
+		if td.Dimension == nil {
+			continue
+		}
+		for _, val := range td.Dimension.Values {
+			if val.ParentID != nil {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func ToTableModel(input *dto.CreateTableRequest) *models.Table {

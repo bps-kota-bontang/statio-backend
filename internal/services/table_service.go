@@ -18,12 +18,13 @@ import (
 )
 
 type TableService struct {
-	tableRepo    repositories.TableRepository
-	factSvc      *FactService
-	dimensionSvc *DimensionService
-	excelSvc     *ExcelService
-	asynqClient  *asynq.Client
-	db           *gorm.DB
+	tableRepo      repositories.TableRepository
+	factSvc        *FactService
+	dimensionSvc   *DimensionService
+	excelSvc       *ExcelService
+	aggregationSvc *AggregationService
+	asynqClient    *asynq.Client
+	db             *gorm.DB
 }
 
 func NewTableService(
@@ -31,16 +32,18 @@ func NewTableService(
 	factSvc *FactService,
 	dimensionSvc *DimensionService,
 	excelSvc *ExcelService,
+	aggregationSvc *AggregationService,
 	asynqClient *asynq.Client,
 	db *gorm.DB,
 ) *TableService {
 	return &TableService{
-		tableRepo:    tableRepo,
-		factSvc:      factSvc,
-		dimensionSvc: dimensionSvc,
-		excelSvc:     excelSvc,
-		asynqClient:  asynqClient,
-		db:           db,
+		tableRepo:      tableRepo,
+		factSvc:        factSvc,
+		dimensionSvc:   dimensionSvc,
+		excelSvc:       excelSvc,
+		aggregationSvc: aggregationSvc,
+		asynqClient:    asynqClient,
+		db:             db,
 	}
 }
 
@@ -705,4 +708,14 @@ func (s *TableService) ExportTable(tableID string, years []int, format string) (
 		Name: filename,
 		File: fileBytes,
 	}, nil
+}
+
+func (s *TableService) GenerateParentTable(
+	tableID string,
+	input *dto.GenerateParentTableRequest,
+) (*dto.GenerateParentTableResponse, error) {
+	return s.aggregationSvc.GenerateParentTable(
+		tableID,
+		input,
+	)
 }

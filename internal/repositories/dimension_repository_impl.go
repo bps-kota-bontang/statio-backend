@@ -268,6 +268,33 @@ func (r *DimensionRepositoryImpl) FindPaginated(
 	return dimensions, nil
 }
 
+// FindByIDWithValues mengambil dimension beserta semua values, parent, dan children
+func (r *DimensionRepositoryImpl) FindByIDWithValues(id string) (*models.Dimension, error) {
+	var dimension models.Dimension
+	if err := r.db.
+		Preload("Values", func(db *gorm.DB) *gorm.DB {
+			return db.Order(`"order" ASC`)
+		}).
+		Preload("Values.Parent").
+		Preload("Values.Children").
+		First(&dimension, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &dimension, nil
+}
+
+// FindParentValueIDs mengambil semua parent value IDs dari dimension value yang memiliki parent
+func (r *DimensionRepositoryImpl) FindParentValueIDs(dimensionID string) ([]string, error) {
+	var parentIDs []string
+	if err := r.db.Model(&models.DimensionValue{}).
+		Where("dimension_id = ? AND parent_id IS NOT NULL", dimensionID).
+		Distinct("parent_id").
+		Pluck("parent_id", &parentIDs).Error; err != nil {
+		return nil, err
+	}
+	return parentIDs, nil
+}
+
 func NewDimensionRepository(db *gorm.DB) DimensionRepository {
 	return &DimensionRepositoryImpl{db: db}
 }
