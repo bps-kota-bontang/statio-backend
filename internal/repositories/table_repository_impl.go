@@ -796,8 +796,10 @@ func (j *TableRepositoryImpl) FindByIDAndYear(id string, year int) (*models.Tabl
 		// 	return db.Order(`"order" ASC`)
 		// }).
 		Preload("Dimensions", func(db *gorm.DB) *gorm.DB {
-			return db.Order(`"order" ASC`).Preload("Dimension.Values.Parent", func(db2 *gorm.DB) *gorm.DB {
-				return db2.Order(`"order" ASC`)
+			return db.Order(`"order" ASC`).Preload("Dimension.Values", func(db2 *gorm.DB) *gorm.DB {
+				return db2.Order(`"order" ASC`).Preload("Parent", func(db3 *gorm.DB) *gorm.DB {
+					return db3.Order(`"order" ASC`)
+				})
 			})
 		}).
 		Where("id = ?", id).
