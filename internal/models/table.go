@@ -18,10 +18,11 @@ type Table struct {
 	Organization   *Organization    `gorm:"foreignKey:OrganizationID;constraint:OnDelete:CASCADE"`
 	Labels         pq.StringArray   `gorm:"type:text[]"`
 	Notes          *string          `gorm:"type:text"`
+	Aggregate      *string          `gorm:"type:text;default:sum"` // Rumus agregasi dalam format teks
 	IsLocked       bool             `gorm:"type:boolean;not null;default:false"`
 	Status         string           `gorm:"type:text;not null;default:'draft'"`
 	IsAggregated   bool             `gorm:"type:boolean;not null;default:false;index"` // Menandai table hasil agregasi
-	SourceTableID  *string          `gorm:"type:uuid;index"`                            // ID table sumber untuk table agregasi
+	SourceTableID  *string          `gorm:"type:uuid;index"`                           // ID table sumber untuk table agregasi
 	Dimensions     []TableDimension `gorm:"foreignKey:TableID;constraint:OnDelete:CASCADE"`
 	Facts          []Fact           `gorm:"foreignKey:TableID;constraint:OnDelete:CASCADE"`
 	CreatedAt      time.Time

@@ -8,9 +8,10 @@ import (
 // ToDimensionResponse mengubah models.Dimension menjadi dto.DimensionResponse
 func ToDimensionResponse(dimension *models.Dimension, order *int) *dto.DimensionResponse {
 	return &dto.DimensionResponse{
-		ID:    dimension.ID,
-		Name:  dimension.Name,
-		Order: order,
+		ID:        dimension.ID,
+		Name:      dimension.Name,
+		Order:     order,
+		Aggregate: dimension.Aggregate,
 		Values: func() []dto.DimensionValueResponse {
 			values := make([]dto.DimensionValueResponse, 0, len(dimension.Values))
 			for _, v := range dimension.Values {

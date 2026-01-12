@@ -11,6 +11,7 @@ type TableResponse struct {
 	Notes              *string               `json:"notes"`
 	IsLocked           bool                  `json:"is_locked"`
 	Status             string                `json:"status"`
+	Aggregate          *string               `json:"aggregate"`
 	HasParentDimension bool                  `json:"has_parent_dimension"`
 	Dimensions         []DimensionResponse   `json:"dimensions"`
 	Facts              []FactResponse        `json:"facts"`

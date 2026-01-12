@@ -17,6 +17,7 @@ func ToTableResponse(table *models.Table, year *int) *dto.TableResponse {
 		Notes:              table.Notes,
 		IsLocked:           table.IsLocked,
 		Status:             table.Status,
+		Aggregate:          table.Aggregate,
 		HasParentDimension: false,
 		Dimensions:         []dto.DimensionResponse{},
 		Facts:              []dto.FactResponse{},
