@@ -6,10 +6,11 @@ type ParentDimensionValueResponse struct {
 }
 
 type DimensionValueResponse struct {
-	ID     string                        `json:"id"`
-	Name   string                        `json:"name"`
-	Order  int                           `json:"order"`
-	Parent *ParentDimensionValueResponse `json:"parent,omitempty"`
+	ID        string                        `json:"id"`
+	Name      string                        `json:"name"`
+	Order     int                           `json:"order"`
+	Aggregate *string                       `json:"aggregate"`
+	Parent    *ParentDimensionValueResponse `json:"parent,omitempty"`
 }
 
 type DimensionResponse struct {

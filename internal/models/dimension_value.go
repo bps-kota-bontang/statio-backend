@@ -12,6 +12,7 @@ type DimensionValue struct {
 	Name        string               `gorm:"type:text;not null"`
 	Order       int                  `gorm:"type:int;default:0"`
 	ParentID    *string              `gorm:"type:uuid;index"`
+	Aggregate   *string              `gorm:"type:text;default:sum"` // e.g., "sum", "avg", etc.
 	Dimension   *Dimension           `gorm:"foreignKey:DimensionID;constraint:OnDelete:CASCADE"`
 	Parent      *DimensionValue      `gorm:"foreignKey:ParentID"`
 	Children    []DimensionValue     `gorm:"foreignKey:ParentID"`
