@@ -72,7 +72,7 @@ type UpdateTableIsLockedRequest struct {
 }
 
 type UpdateTableStatusRequest struct {
-	Status string `json:"status" validate:"required,oneof=draft submitted finalized, unfinalized"`
+	Status string `json:"status" validate:"required,oneof=draft submitted finalized unfinalized"`
 }
 
 type AnalyzeTablesRequest struct {
