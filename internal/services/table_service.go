@@ -582,6 +582,15 @@ func (s *TableService) UpdateTableStatus(
 
 	table.Status = status
 
+	if status == "unfinalized" {
+		if !utils.IsAdmin(roles) {
+			return fmt.Errorf("only admin users can change the table status to unfinalized")
+		}
+		table.IsLocked = false
+
+		table.Status = "submitted"
+	}
+
 	return s.tableRepo.Update(table)
 }
 
