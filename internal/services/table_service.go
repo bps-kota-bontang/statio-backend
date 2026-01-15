@@ -524,9 +524,6 @@ func (s *TableService) UpdateTableStatus(
 	}
 
 	if status == "draft" {
-		if !utils.IsAdmin(roles) {
-			return fmt.Errorf("only admin users can change the table status to draft")
-		}
 		table.IsLocked = false
 
 		payload, err := json.Marshal(&dto.UnanalyzeFactPayload{
