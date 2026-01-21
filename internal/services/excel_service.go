@@ -256,6 +256,77 @@ func (s *ExcelService) exportDimension1(f *excelize.File, table *dto.TableRespon
 		currentRow++
 	}
 
+	// Add aggregate row if aggregate field is not nil
+	if table.Aggregate != nil && *table.Aggregate != "" {
+		aggregateLabel := ""
+		switch *table.Aggregate {
+		case "sum":
+			aggregateLabel = "Jumlah"
+		case "avg":
+			aggregateLabel = "Rata-rata"
+		case "min":
+			aggregateLabel = "Minimum"
+		case "max":
+			aggregateLabel = "Maksimum"
+		default:
+			aggregateLabel = strings.Title(*table.Aggregate)
+		}
+
+		cellName, _ := excelize.CoordinatesToCellName(1, currentRow)
+		f.SetCellValue(sheetName, cellName, aggregateLabel)
+		f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
+
+		for colIdx, year := range years {
+			cellName, _ := excelize.CoordinatesToCellName(colIdx+2, currentRow)
+
+			// Collect all values for this year
+			var values []float64
+			for _, dimVal := range dimValues {
+				if pivotData[dimVal] != nil && pivotData[dimVal][year] != nil {
+					if val, ok := pivotData[dimVal][year].(float64); ok {
+						values = append(values, val)
+					}
+				}
+			}
+
+			// Calculate aggregate
+			if len(values) > 0 {
+				var result float64
+				switch *table.Aggregate {
+				case "sum":
+					for _, v := range values {
+						result += v
+					}
+				case "avg":
+					sum := 0.0
+					for _, v := range values {
+						sum += v
+					}
+					result = sum / float64(len(values))
+				case "min":
+					result = values[0]
+					for _, v := range values {
+						if v < result {
+							result = v
+						}
+					}
+				case "max":
+					result = values[0]
+					for _, v := range values {
+						if v > result {
+							result = v
+						}
+					}
+				}
+				f.SetCellValue(sheetName, cellName, result)
+			} else {
+				f.SetCellValue(sheetName, cellName, "")
+			}
+			f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
+		}
+		currentRow++
+	}
+
 	// Auto-fit columns
 	f.SetColWidth(sheetName, "A", "A", 25)
 	for i := range years {
