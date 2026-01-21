@@ -22,6 +22,7 @@ func NewFiberApp(
 	UserHandler *handlers.UserHandler,
 	DashboardHandler *handlers.DashboardHandler,
 	IntegrationHandler *handlers.IntegrationHandler,
+	ConfigurationHandler *handlers.ConfigurationHandler,
 ) (*container.AppContainer, error) {
 	App := fiber.New(
 		fiber.Config{
@@ -69,6 +70,7 @@ func NewFiberApp(
 	routes.RegisterUserRoutes(protected, UserHandler)
 	routes.RegisterDashboardRoutes(protected, DashboardHandler)
 	routes.RegisterIntegrationRoutes(protected, IntegrationHandler)
+	routes.RegisterConfigurationRoutes(protected, ConfigurationHandler)
 
 	return &container.AppContainer{
 		App:    App,

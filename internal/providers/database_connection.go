@@ -51,6 +51,7 @@ func NewDBConnection(cfg *config.DatabaseConfig) (*gorm.DB, error) {
 		&models.FactDimensionValue{},
 		&models.Organization{},
 		&models.User{},
+		&models.Configuration{},
 	); err != nil {
 		log.Fatalf("Failed to apply database migrations: %v", err)
 		return nil, err
