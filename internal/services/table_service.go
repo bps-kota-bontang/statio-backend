@@ -670,7 +670,7 @@ func (s *TableService) CommitTables(tableIDs []string) error {
 	return nil
 }
 
-func (s *TableService) ExportTable(tableID string, years []int, format string) (*dto.TableExportResponse, error) {
+func (s *TableService) ExportTable(tableID string, years []int, format string) (*dto.FileResponse, error) {
 	// Fetch table data
 	tableModel, err := s.tableRepo.FindByIDAndMultiYear(tableID, years)
 	if err != nil {
@@ -710,7 +710,7 @@ func (s *TableService) ExportTable(tableID string, years []int, format string) (
 		filename = fmt.Sprintf("%s_%s.%s", table.Name, strings.Join(yearStrs, "_"), fileExt)
 	}
 
-	return &dto.TableExportResponse{
+	return &dto.FileResponse{
 		Name: filename,
 		File: fileBytes,
 	}, nil

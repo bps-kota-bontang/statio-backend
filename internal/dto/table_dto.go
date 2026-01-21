@@ -28,6 +28,8 @@ type TableListResponse struct {
 	IsAggregated        bool                    `json:"is_aggregated"`
 	Status              string                  `json:"status"`
 	HasParentDimension  bool                    `json:"has_parent_dimension"`
+	WebsiteTableID      *string                 `json:"website_table_id,omitempty"`
+	WebsiteSubjectID    *string                 `json:"website_subject_id,omitempty"`
 	Dimensions          []DimensionListResponse `json:"dimensions"`
 	InsightFactsSummary *SummaryInsightFacts    `json:"insight_facts_summary"`
 }
@@ -84,12 +86,8 @@ type CommitTablesRequest struct {
 }
 
 type FilterTablesRequest struct {
-	OrganizationID *string `json:"organization_id,omitempty"`
-}
-
-type TableExportResponse struct {
-	Name string `json:"name"`
-	File []byte `json:"file"`
+	OrganizationID *string  `json:"organization_id,omitempty"`
+	TableIDs       []string `json:"table_ids,omitempty"`
 }
 
 type GenerateParentTableRequest struct {
@@ -110,4 +108,9 @@ type AggregatedDimensionInfo struct {
 	DimensionID      string `json:"dimension_id"`
 	DimensionName    string `json:"dimension_name"`
 	ParentValuesUsed int    `json:"parent_values_used"` // Jumlah parent values yang digunakan
+}
+
+type ExportDataIntegrationRequest struct {
+	TableIDs []string `json:"table_ids" validate:"required,min=1,dive,required"`
+	Year     int      `json:"year" validate:"required"`
 }

@@ -180,6 +180,8 @@ func ToTableListResponse(table *models.Table) *dto.TableListResponse {
 		IsLocked:           table.IsLocked,
 		IsAggregated:       table.IsAggregated,
 		Status:             table.Status,
+		WebsiteTableID:     table.WebsiteTableID,
+		WebsiteSubjectID:   table.WebsiteSubjectID,
 		HasParentDimension: hasParentDimension(table.Dimensions),
 		Dimensions:         extractDimension(table.Dimensions),
 	}

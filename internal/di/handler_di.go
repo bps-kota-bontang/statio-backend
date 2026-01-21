@@ -14,4 +14,5 @@ var HandlerSet = wire.NewSet(
 	handlers.NewAuthHandler,
 	handlers.NewUserHandler,
 	handlers.NewDashboardHandler,
+	handlers.NewIntegrationHandler,
 )
