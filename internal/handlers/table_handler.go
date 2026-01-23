@@ -47,6 +47,7 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 		"revision_facts",
 		"status",
 		"is_aggregated",
+		"is_show",
 	}
 	for _, key := range keys {
 		// c.Context().QueryArgs().PeekMulti(key) mengembalikan [][]byte
@@ -64,6 +65,7 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 		if organizationID != nil {
 			filters["organization_id"] = []string{*organizationID}
 			filters["is_aggregated"] = []string{"false"}
+			filters["is_show"] = []string{"true"}
 		} else {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"data":    nil,
@@ -72,7 +74,7 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 		}
 	}
 
-	Dimensions, total, err := h.service.GetAllPaginated(search, page, perPage, sortBy, sortOrder, filters)
+	tables, total, err := h.service.GetAllPaginated(search, page, perPage, sortBy, sortOrder, filters)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"data":    nil,
@@ -83,8 +85,8 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 	meta := utils.NewPaginationMeta(total, page, perPage)
 
 	return c.JSON(fiber.Map{
-		"data":    Dimensions,
-		"message": "Dimensions fetched successfully",
+		"data":    tables,
+		"message": "Tables fetched successfully",
 		"meta":    meta,
 	})
 }

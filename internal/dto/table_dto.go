@@ -15,6 +15,7 @@ type TableResponse struct {
 	HasParentDimension bool                  `json:"has_parent_dimension"`
 	Dimensions         []DimensionResponse   `json:"dimensions"`
 	Facts              []FactResponse        `json:"facts"`
+	IsShow             bool                  `json:"is_show"`
 }
 
 type TableListResponse struct {
@@ -32,6 +33,7 @@ type TableListResponse struct {
 	WebsiteSubjectID    *string                 `json:"website_subject_id,omitempty"`
 	Dimensions          []DimensionListResponse `json:"dimensions"`
 	InsightFactsSummary *SummaryInsightFacts    `json:"insight_facts_summary"`
+	IsShow              bool                    `json:"is_show"`
 }
 
 type CreateTableRequest struct {

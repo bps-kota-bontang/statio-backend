@@ -300,6 +300,59 @@ func (j *TableRepositoryImpl) Count(search string, filters map[string][]string, 
 			} else {
 				query = query.Where("tables.organization_id IN ?", realValues)
 			}
+		case "status":
+			// status filter is lightweight, keep it
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+			if hasNull && len(realValues) > 0 {
+				query = query.Where("tables.status IN ? OR tables.status IS NULL", realValues)
+			} else if hasNull {
+				query = query.Where("tables.status IS NULL")
+			} else {
+				query = query.Where("tables.status IN ?", realValues)
+			}
+			// ignore missing_facts here (we handle in service)
+		case "is_aggregated":
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+			if hasNull && len(realValues) > 0 {
+				query = query.Where("tables.is_aggregated IN ? OR tables.is_aggregated IS NULL", realValues)
+			} else if hasNull {
+				query = query.Where("tables.is_aggregated IS NULL")
+			} else {
+				query = query.Where("tables.is_aggregated IN ?", realValues)
+			}
+		case "is_show":
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+			if hasNull && len(realValues) > 0 {
+				query = query.Where("tables.is_show IN ? OR tables.is_show IS NULL", realValues)
+			} else if hasNull {
+				query = query.Where("tables.is_show IS NULL")
+			} else {
+				query = query.Where("tables.is_show IN ?", realValues)
+			}
 		}
 	}
 
@@ -640,6 +693,23 @@ func (j *TableRepositoryImpl) FindLight(search string, sortBy string, sortOrder 
 				query = query.Where("tables.is_aggregated IS NULL")
 			} else {
 				query = query.Where("tables.is_aggregated IN ?", realValues)
+			}
+		case "is_show":
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+			if hasNull && len(realValues) > 0 {
+				query = query.Where("tables.is_show IN ? OR tables.is_show IS NULL", realValues)
+			} else if hasNull {
+				query = query.Where("tables.is_show IS NULL")
+			} else {
+				query = query.Where("tables.is_show IN ?", realValues)
 			}
 		}
 	}

@@ -21,6 +21,7 @@ func ToTableResponse(table *models.Table, year *int) *dto.TableResponse {
 		HasParentDimension: false,
 		Dimensions:         []dto.DimensionResponse{},
 		Facts:              []dto.FactResponse{},
+		IsShow:             table.IsShow,
 	}
 
 	// Transform Dimensions
@@ -184,6 +185,7 @@ func ToTableListResponse(table *models.Table) *dto.TableListResponse {
 		WebsiteSubjectID:   table.WebsiteSubjectID,
 		HasParentDimension: hasParentDimension(table.Dimensions),
 		Dimensions:         extractDimension(table.Dimensions),
+		IsShow:             table.IsShow,
 	}
 
 	if table.Indicator != nil {
