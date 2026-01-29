@@ -85,7 +85,7 @@ func (h *DimensionHandler) CreateDimension(c *fiber.Ctx) error {
 	if !utils.IsAdmin(roles) {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"data":    nil,
-			"message": "You are not authorized to create organizations",
+			"message": "You are not authorized to create dimension",
 		})
 	}
 
@@ -124,7 +124,7 @@ func (h *DimensionHandler) UpdateDimension(c *fiber.Ctx) error {
 	if !utils.IsAdmin(roles) {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"data":    nil,
-			"message": "You are not authorized to create organizations",
+			"message": "You are not authorized to update dimension",
 		})
 	}
 

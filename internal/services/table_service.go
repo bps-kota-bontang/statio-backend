@@ -323,8 +323,18 @@ func (s *TableService) UpdateTableFacts(tableID string, payload *dto.UpdateFactR
 		return fmt.Errorf("table not found")
 	}
 
-	if !utils.IsAdmin(roles) {
-		if organizationID == nil || table.OrganizationID == nil || *organizationID != *table.OrganizationID {
+	// Viewer: no access at all
+	if utils.IsViewer(roles) {
+		return fmt.Errorf("you are not authorized to update facts for this table")
+	}
+
+	// Operator: only allowed for same organization
+	if utils.IsOperator(roles) {
+		if organizationID == nil || table.OrganizationID == nil {
+			return fmt.Errorf("organization not found")
+		}
+
+		if *organizationID != *table.OrganizationID {
 			return fmt.Errorf("you are not authorized to update facts for this table")
 		}
 	}
@@ -338,7 +348,11 @@ func (s *TableService) GetTableFacts(tableID string, dimValueIDs, roles []string
 		return nil, fmt.Errorf("table not found")
 	}
 
-	if !utils.IsAdmin(roles) {
+	if utils.IsViewer(roles) {
+		return nil, fmt.Errorf("you are not authorized to view facts for this table")
+	}
+
+	if utils.IsOperator(roles) {
 		if organizationID == nil || table.OrganizationID == nil || *organizationID != *table.OrganizationID {
 			return nil, fmt.Errorf("you are not authorized to view facts for this table")
 		}
@@ -400,7 +414,11 @@ func (s *TableService) AddLabelsBulk(
 	input *dto.AddLabelsToTablesRequest,
 	roles []string, organizationID *string,
 ) error {
-	if !utils.IsAdmin(roles) {
+	if utils.IsViewer(roles) {
+		return fmt.Errorf("you are not authorized to add labels to tables")
+	}
+
+	if utils.IsOperator(roles) {
 		// Cek setiap table apakah boleh diakses
 		tables, err := s.tableRepo.FindByIDs(input.TableIDs)
 		if err != nil {
@@ -436,7 +454,11 @@ func (s *TableService) UpdateTableLabels(
 	input *dto.UpdateTableLabelsRequest,
 	roles []string, organizationID *string,
 ) error {
-	if !utils.IsAdmin(roles) {
+	if utils.IsViewer(roles) {
+		return fmt.Errorf("you are not authorized to update labels for this table")
+	}
+
+	if utils.IsOperator(roles) {
 		table, err := s.tableRepo.FindBaseByID(tableID)
 		if err != nil {
 			return err
@@ -460,7 +482,11 @@ func (s *TableService) UpdateTableName(
 		return err
 	}
 
-	if !utils.IsAdmin(roles) {
+	if utils.IsViewer(roles) {
+		return fmt.Errorf("you are not authorized to update the name for this table")
+	}
+
+	if utils.IsOperator(roles) {
 		if organizationID == nil || table.OrganizationID == nil || *organizationID != *table.OrganizationID {
 			return fmt.Errorf("you are not authorized to update the name for this table")
 		}
@@ -481,7 +507,11 @@ func (s *TableService) UpdateTableNotes(
 		return err
 	}
 
-	if !utils.IsAdmin(roles) {
+	if utils.IsViewer(roles) {
+		return fmt.Errorf("you are not authorized to update the notes for this table")
+	}
+
+	if utils.IsOperator(roles) {
 		if organizationID == nil || table.OrganizationID == nil || *organizationID != *table.OrganizationID {
 			return fmt.Errorf("you are not authorized to update the notes for this table")
 		}
@@ -517,7 +547,11 @@ func (s *TableService) UpdateTableStatus(
 		return err
 	}
 
-	if !utils.IsAdmin(roles) {
+	if utils.IsViewer(roles) {
+		return fmt.Errorf("you are not authorized to update the status for this table")
+	}
+
+	if utils.IsOperator(roles) {
 		if organizationID == nil || table.OrganizationID == nil || *organizationID != *table.OrganizationID {
 			return fmt.Errorf("you are not authorized to update the status for this table")
 		}
@@ -602,7 +636,11 @@ func (s *TableService) GetInsightFacts(
 		return nil, fmt.Errorf("table not found")
 	}
 
-	if !utils.IsAdmin(roles) {
+	if utils.IsViewer(roles) {
+		return nil, fmt.Errorf("you are not authorized to view missing facts for this table")
+	}
+
+	if utils.IsOperator(roles) {
 		if organizationID == nil || table.OrganizationID == nil || *organizationID != *table.OrganizationID {
 			return nil, fmt.Errorf("you are not authorized to view missing facts for this table")
 		}

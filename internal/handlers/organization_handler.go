@@ -40,7 +40,7 @@ func (h *OrganizationHandler) AssignTables(c *fiber.Ctx) error {
 	if !utils.IsAdmin(roles) {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"data":    nil,
-			"message": "You are not authorized to create organizations",
+			"message": "You are not authorized to assign tables to organization",
 		})
 	}
 
@@ -78,7 +78,7 @@ func (h *OrganizationHandler) CreateOrganization(c *fiber.Ctx) error {
 	if !utils.IsAdmin(roles) {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"data":    nil,
-			"message": "You are not authorized to create organizations",
+			"message": "You are not authorized to create organization",
 		})
 	}
 
@@ -117,7 +117,7 @@ func (h *OrganizationHandler) UpdateOrganization(c *fiber.Ctx) error {
 	if !utils.IsAdmin(roles) {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"data":    nil,
-			"message": "You are not authorized to create organizations",
+			"message": "You are not authorized to update organization",
 		})
 	}
 

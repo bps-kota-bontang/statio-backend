@@ -27,7 +27,7 @@ func (h *IntegrationHandler) ExportDataIntegration(c *fiber.Ctx) error {
 	if !utils.IsAdmin(roles) {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"data":    nil,
-			"message": "You are not authorized to analyze tables",
+			"message": "You are not authorized to export data integration",
 		})
 	}
 

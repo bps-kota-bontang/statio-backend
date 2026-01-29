@@ -154,7 +154,7 @@ func (h *UserHandler) GetUserByID(c *fiber.Ctx) error {
 	if !utils.IsAdmin(roles) {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"data":    nil,
-			"message": "You are not authorized to view users",
+			"message": "You are not authorized to view user",
 		})
 	}
 
@@ -216,7 +216,7 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 	if !utils.IsAdmin(roles) {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"data":    nil,
-			"message": "You are not authorized to  update user",
+			"message": "You are not authorized to update user",
 		})
 	}
 

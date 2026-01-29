@@ -61,7 +61,7 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 		}
 	}
 
-	if !utils.IsAdmin(roles) {
+	if utils.IsOperator(roles) {
 		if organizationID != nil {
 			filters["organization_id"] = []string{*organizationID}
 			filters["is_aggregated"] = []string{"false"}
@@ -114,7 +114,7 @@ func (h *TableHandler) GetTable(c *fiber.Ctx) error {
 		})
 	}
 
-	if !utils.IsAdmin(roles) {
+	if utils.IsOperator(roles) {
 		if orgID == nil || table.Organization == nil || table.Organization.ID != *orgID {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"data":    nil,
@@ -198,7 +198,7 @@ func (h *TableHandler) CreateTable(c *fiber.Ctx) error {
 	if !utils.IsAdmin(roles) {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"data":    nil,
-			"message": "You are not authorized to create tables",
+			"message": "You are not authorized to create table",
 		})
 	}
 
@@ -237,7 +237,7 @@ func (h *TableHandler) UpdateTable(c *fiber.Ctx) error {
 	if !utils.IsAdmin(roles) {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"data":    nil,
-			"message": "You are not authorized to create tables",
+			"message": "You are not authorized to update table",
 		})
 	}
 
@@ -544,7 +544,7 @@ func (h *TableHandler) AnalyzeTable(c *fiber.Ctx) error {
 	if !utils.IsAdmin(roles) {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"data":    nil,
-			"message": "You are not authorized to create tables",
+			"message": "You are not authorized to analyze table",
 		})
 	}
 
