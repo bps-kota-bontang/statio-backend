@@ -54,7 +54,7 @@ func (s *IntegrationService) ExportDataIntegration(tableIDs []string, year int) 
 		}
 
 		// Export table to file
-		exportData, err := s.tableSvc.ExportTable(table.ID, []int{year}, "xls")
+		exportData, err := s.tableSvc.ExportTable(table.ID, []int{year}, "xls", []string{"admin"}, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to export table %s: %w", table.ID, err)
 		}

@@ -708,12 +708,24 @@ func (s *TableService) CommitTables(tableIDs []string) error {
 	return nil
 }
 
-func (s *TableService) ExportTable(tableID string, years []int, format string) (*dto.FileResponse, error) {
+func (s *TableService) ExportTable(tableID string, years []int, format string, roles []string, organizationID *string) (*dto.FileResponse, error) {
 	// Fetch table data
 	tableModel, err := s.tableRepo.FindByIDAndMultiYear(tableID, years)
 	if err != nil {
 		return nil, err
 	}
+
+	// Operator: only allowed for same organization
+	if utils.IsOperator(roles) {
+		if organizationID == nil || tableModel.OrganizationID == nil {
+			return nil, fmt.Errorf("organization not found")
+		}
+
+		if *organizationID != *tableModel.OrganizationID {
+			return nil, fmt.Errorf("you are not authorized to export this table")
+		}
+	}
+
 	table := mappers.ToTableResponse(tableModel, nil)
 
 	// Generate file based on format
