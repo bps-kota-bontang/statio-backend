@@ -512,6 +512,49 @@ func (h *TableHandler) UpdateTableStatus(c *fiber.Ctx) error {
 	})
 }
 
+func (h *TableHandler) UpdateTableMapping(c *fiber.Ctx) error {
+	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to update table mapping",
+		})
+	}
+
+	var payload dto.UpdateTableMappingRequest
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid request payload",
+		})
+	}
+
+	if err := h.validate.Struct(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	if err := h.service.UpdateTableMapping(id, &payload); err != nil {
+		status := 500
+		if err == gorm.ErrRecordNotFound {
+			status = 404
+		}
+		return c.Status(status).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    nil,
+		"message": "Table mapping updated successfully",
+	})
+}
+
 func (h *TableHandler) GetInsightFacts(c *fiber.Ctx) error {
 	id := c.Params("id")
 	roles := c.Locals("roles").([]string)

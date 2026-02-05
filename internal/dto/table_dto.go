@@ -31,6 +31,7 @@ type TableListResponse struct {
 	HasParentDimension  bool                    `json:"has_parent_dimension"`
 	WebsiteTableID      *string                 `json:"website_table_id,omitempty"`
 	WebsiteSubjectID    *string                 `json:"website_subject_id,omitempty"`
+	WebsiteLink         *string                 `json:"website_link,omitempty"`
 	IsIntegrated        bool                    `json:"is_integrated"`
 	Dimensions          []DimensionListResponse `json:"dimensions"`
 	InsightFactsSummary *SummaryInsightFacts    `json:"insight_facts_summary"`
@@ -78,6 +79,12 @@ type UpdateTableIsLockedRequest struct {
 
 type UpdateTableStatusRequest struct {
 	Status string `json:"status" validate:"required,oneof=draft submitted finalized unfinalized"`
+}
+
+type UpdateTableMappingRequest struct {
+	WebsiteTableID   *string `json:"website_table_id"`
+	WebsiteSubjectID *string `json:"website_subject_id"`
+	WebsiteLink      *string `json:"website_link"`
 }
 
 type AnalyzeTablesRequest struct {

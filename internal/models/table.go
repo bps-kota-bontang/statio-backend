@@ -27,6 +27,7 @@ type Table struct {
 	Facts            []Fact           `gorm:"foreignKey:TableID;constraint:OnDelete:CASCADE"`
 	WebsiteTableID   *string          `gorm:"type:text"` // ID table di website jika ada
 	WebsiteSubjectID *string          `gorm:"type:text"` // ID subject di website jika ada
+	WebsiteLink      *string          `gorm:"type:text"` // Link ke halaman website
 	IsShow           bool             `gorm:"type:boolean;not null;default:true"`
 	CreatedAt        time.Time
 	UpdatedAt        time.Time

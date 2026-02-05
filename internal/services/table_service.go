@@ -625,6 +625,22 @@ func (s *TableService) UpdateTableStatus(
 	return s.tableRepo.Update(table)
 }
 
+func (s *TableService) UpdateTableMapping(
+	tableID string,
+	payload *dto.UpdateTableMappingRequest,
+) error {
+	table, err := s.tableRepo.FindBaseByID(tableID)
+	if err != nil {
+		return err
+	}
+
+	table.WebsiteTableID = payload.WebsiteTableID
+	table.WebsiteSubjectID = payload.WebsiteSubjectID
+	table.WebsiteLink = payload.WebsiteLink
+
+	return s.tableRepo.Update(table)
+}
+
 func (s *TableService) GetInsightFacts(
 	tableID string,
 	roles []string,

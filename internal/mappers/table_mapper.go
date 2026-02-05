@@ -183,6 +183,7 @@ func ToTableListResponse(table *models.Table) *dto.TableListResponse {
 		Status:             table.Status,
 		WebsiteTableID:     table.WebsiteTableID,
 		WebsiteSubjectID:   table.WebsiteSubjectID,
+		WebsiteLink:        table.WebsiteLink,
 		HasParentDimension: hasParentDimension(table.Dimensions),
 		Dimensions:         extractDimension(table.Dimensions),
 		IsShow:             table.IsShow,
