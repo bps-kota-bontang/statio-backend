@@ -10,4 +10,5 @@ import (
 func RegisterIntegrationRoutes(router fiber.Router, handler *handlers.IntegrationHandler) {
 	integration := router.Group("/integrations")
 	integration.Post("/export", handler.ExportDataIntegration)
+	integration.Post("/import", handler.ImportDataIntegration)
 }

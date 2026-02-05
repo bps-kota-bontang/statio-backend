@@ -63,3 +63,38 @@ func (h *IntegrationHandler) ExportDataIntegration(c *fiber.Ctx) error {
 	c.Status(200)
 	return c.Send(data.File)
 }
+
+func (h *IntegrationHandler) ImportDataIntegration(c *fiber.Ctx) error {
+	roles := c.Locals("roles").([]string)
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to import data integration",
+		})
+	}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": "File is required",
+		})
+	}
+
+	err = h.service.ImportDataIntegration(file)
+	if err != nil {
+		status := 500
+		if err == gorm.ErrRecordNotFound {
+			status = 404
+		}
+		return c.Status(status).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.Status(200).JSON(fiber.Map{
+		"data":    nil,
+		"message": "Data integration imported successfully",
+	})
+}

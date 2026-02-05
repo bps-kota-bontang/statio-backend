@@ -5,12 +5,21 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
 	"statio/internal/dto"
 	"time"
 )
 
+const (
+	CONFIGURATION_KEY_BASE_URL = "integration_base_url"
+	PATH_INTEGRATION_UPLOAD    = "/api/v1/integrations/upload"
+)
+
 type IntegrationService struct {
-	tableSvc *TableService
+	tableSvc  *TableService
+	configSvc *ConfigurationService
 }
 
 type ExportMetadata struct {
@@ -20,9 +29,13 @@ type ExportMetadata struct {
 	File      string `json:"file"`
 }
 
-func NewIntegrationService(tableSvc *TableService) *IntegrationService {
+func NewIntegrationService(
+	tableSvc *TableService,
+	configSvc *ConfigurationService,
+) *IntegrationService {
 	return &IntegrationService{
-		tableSvc: tableSvc,
+		tableSvc:  tableSvc,
+		configSvc: configSvc,
 	}
 }
 
@@ -118,4 +131,77 @@ func (s *IntegrationService) ExportDataIntegration(tableIDs []string, year int) 
 		Name: filename,
 		File: buf.Bytes(),
 	}, nil
+}
+
+func (s *IntegrationService) ImportDataIntegration(file *multipart.FileHeader) error {
+	configBaseURLResp, err := s.configSvc.GetConfigurationByKey(CONFIGURATION_KEY_BASE_URL)
+	if err != nil {
+		return fmt.Errorf("failed to get integration base URL configuration: %w", err)
+	}
+
+	if configBaseURLResp == nil || configBaseURLResp.Value == "" {
+		return fmt.Errorf("integration base URL configuration is not set")
+	}
+
+	baseURL := configBaseURLResp.Value
+
+	// Open the uploaded file
+	src, err := file.Open()
+	if err != nil {
+		return fmt.Errorf("failed to open uploaded file: %w", err)
+	}
+	defer src.Close()
+
+	// Create a buffer to store the multipart form
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	// Create a form file field
+	part, err := writer.CreateFormFile("file", file.Filename)
+	if err != nil {
+		return fmt.Errorf("failed to create form file: %w", err)
+	}
+
+	// Copy the file content to the form field
+	_, err = io.Copy(part, src)
+	if err != nil {
+		return fmt.Errorf("failed to copy file content: %w", err)
+	}
+
+	// Close the multipart writer to finalize the form
+	err = writer.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	// Create the full upload URL
+	uploadURL := baseURL + PATH_INTEGRATION_UPLOAD
+
+	// Create HTTP request
+	req, err := http.NewRequest("POST", uploadURL, body)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	// Set the content type with the boundary
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	// Send the request
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send upload request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	return nil
 }
