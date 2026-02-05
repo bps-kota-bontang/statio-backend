@@ -662,7 +662,7 @@ func (h *TableHandler) CommitTables(c *fiber.Ctx) error {
 	})
 }
 
-func (h *TableHandler) ExportTable(c *fiber.Ctx) error {
+func (h *TableHandler) DownloadTable(c *fiber.Ctx) error {
 	id := c.Params("id")
 	roles := c.Locals("roles").([]string)
 	orgID := c.Locals("organization_id").(*string)
@@ -696,7 +696,7 @@ func (h *TableHandler) ExportTable(c *fiber.Ctx) error {
 	// Get format from query parameter (default to xlsx)
 	format := c.Query("format", "xlsx")
 
-	data, err := h.service.ExportTable(id, years, format, roles, orgID)
+	data, err := h.service.DownloadTable(id, years, format, roles, orgID)
 	if err != nil {
 		status := 500
 		if err == gorm.ErrRecordNotFound {

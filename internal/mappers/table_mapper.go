@@ -188,6 +188,12 @@ func ToTableListResponse(table *models.Table) *dto.TableListResponse {
 		IsShow:             table.IsShow,
 	}
 
+	if table.WebsiteTableID != nil && table.WebsiteSubjectID != nil {
+		resp.IsIntegrated = true
+	} else {
+		resp.IsIntegrated = false
+	}
+
 	if table.Indicator != nil {
 		resp.Indicator = ToIndicatorListResponse(table.Indicator)
 	}

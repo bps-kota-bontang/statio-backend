@@ -31,6 +31,7 @@ type TableListResponse struct {
 	HasParentDimension  bool                    `json:"has_parent_dimension"`
 	WebsiteTableID      *string                 `json:"website_table_id,omitempty"`
 	WebsiteSubjectID    *string                 `json:"website_subject_id,omitempty"`
+	IsIntegrated        bool                    `json:"is_integrated"`
 	Dimensions          []DimensionListResponse `json:"dimensions"`
 	InsightFactsSummary *SummaryInsightFacts    `json:"insight_facts_summary"`
 	IsShow              bool                    `json:"is_show"`

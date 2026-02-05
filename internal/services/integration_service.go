@@ -46,27 +46,27 @@ func (s *IntegrationService) ExportDataIntegration(tableIDs []string, year int) 
 	// Slice to store metadata
 	var metadata []ExportMetadata
 
-	// Export each table
+	// Download each table
 	for _, table := range tables {
 		// Skip tables without website IDs
 		if table.WebsiteTableID == nil || table.WebsiteSubjectID == nil {
 			continue
 		}
 
-		// Export table to file
-		exportData, err := s.tableSvc.ExportTable(table.ID, []int{year}, "xls", []string{"admin"}, nil)
+		// Download table to file
+		downloadData, err := s.tableSvc.DownloadTable(table.ID, []int{year}, "xls", []string{"admin"}, nil)
 		if err != nil {
-			return nil, fmt.Errorf("failed to export table %s: %w", table.ID, err)
+			return nil, fmt.Errorf("failed to download table %s: %w", table.ID, err)
 		}
 
 		// Add file to zip under "files" folder
-		filename := fmt.Sprintf("files/%s", exportData.Name)
+		filename := fmt.Sprintf("files/%s", downloadData.Name)
 		fileWriter, err := zipWriter.Create(filename)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create zip entry for %s: %w", filename, err)
 		}
 
-		_, err = fileWriter.Write(exportData.File)
+		_, err = fileWriter.Write(downloadData.File)
 		if err != nil {
 			return nil, fmt.Errorf("failed to write file %s to zip: %w", filename, err)
 		}
@@ -76,7 +76,7 @@ func (s *IntegrationService) ExportDataIntegration(tableIDs []string, year int) 
 			ID:        *table.WebsiteTableID,
 			SubjectID: *table.WebsiteSubjectID,
 			Year:      year,
-			File:      exportData.Name,
+			File:      downloadData.Name,
 		}
 
 		metadata = append(metadata, metadataEntry)

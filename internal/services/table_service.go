@@ -708,7 +708,7 @@ func (s *TableService) CommitTables(tableIDs []string) error {
 	return nil
 }
 
-func (s *TableService) ExportTable(tableID string, years []int, format string, roles []string, organizationID *string) (*dto.FileResponse, error) {
+func (s *TableService) DownloadTable(tableID string, years []int, format string, roles []string, organizationID *string) (*dto.FileResponse, error) {
 	// Fetch table data
 	tableModel, err := s.tableRepo.FindByIDAndMultiYear(tableID, years)
 	if err != nil {
@@ -722,7 +722,7 @@ func (s *TableService) ExportTable(tableID string, years []int, format string, r
 		}
 
 		if *organizationID != *tableModel.OrganizationID {
-			return nil, fmt.Errorf("you are not authorized to export this table")
+			return nil, fmt.Errorf("you are not authorized to download this table")
 		}
 	}
 
@@ -740,7 +740,7 @@ func (s *TableService) ExportTable(tableID string, years []int, format string, r
 		fileBytes, err = s.excelSvc.ExportToXLSX(table, years)
 		fileExt = "xlsx"
 	default:
-		return nil, fmt.Errorf("unsupported export format: %s", format)
+		return nil, fmt.Errorf("unsupported download format: %s", format)
 	}
 
 	if err != nil {
