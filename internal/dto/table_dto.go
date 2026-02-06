@@ -74,7 +74,11 @@ type UpdateTableNotesRequest struct {
 }
 
 type UpdateTableIsLockedRequest struct {
-	Locked bool `json:"locked" validate:"required"`
+	Locked bool `json:"locked"`
+}
+
+type UpdateTableIsIntegratedRequest struct {
+	IsIntegrated bool `json:"is_integrated"`
 }
 
 type UpdateTableStatusRequest struct {

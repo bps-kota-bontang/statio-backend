@@ -353,6 +353,23 @@ func (j *TableRepositoryImpl) Count(search string, filters map[string][]string, 
 			} else {
 				query = query.Where("tables.is_show IN ?", realValues)
 			}
+		case "is_integrated":
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+			if hasNull && len(realValues) > 0 {
+				query = query.Where("tables.is_integrated IN ? OR tables.is_integrated IS NULL", realValues)
+			} else if hasNull {
+				query = query.Where("tables.is_integrated IS NULL")
+			} else {
+				query = query.Where("tables.is_integrated IN ?", realValues)
+			}
 		}
 	}
 
@@ -710,6 +727,23 @@ func (j *TableRepositoryImpl) FindLight(search string, sortBy string, sortOrder 
 				query = query.Where("tables.is_show IS NULL")
 			} else {
 				query = query.Where("tables.is_show IN ?", realValues)
+			}
+		case "is_integrated":
+			hasNull := false
+			realValues := make([]string, 0, len(values))
+			for _, v := range values {
+				if v == "__NULL__" {
+					hasNull = true
+				} else {
+					realValues = append(realValues, v)
+				}
+			}
+			if hasNull && len(realValues) > 0 {
+				query = query.Where("tables.is_integrated IN ? OR tables.is_integrated IS NULL", realValues)
+			} else if hasNull {
+				query = query.Where("tables.is_integrated IS NULL")
+			} else {
+				query = query.Where("tables.is_integrated IN ?", realValues)
 			}
 		}
 	}

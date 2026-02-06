@@ -187,12 +187,7 @@ func ToTableListResponse(table *models.Table) *dto.TableListResponse {
 		HasParentDimension: hasParentDimension(table.Dimensions),
 		Dimensions:         extractDimension(table.Dimensions),
 		IsShow:             table.IsShow,
-	}
-
-	if table.WebsiteTableID != nil && table.WebsiteSubjectID != nil {
-		resp.IsIntegrated = true
-	} else {
-		resp.IsIntegrated = false
+		IsIntegrated:       table.IsIntegrated,
 	}
 
 	if table.Indicator != nil {

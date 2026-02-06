@@ -29,6 +29,7 @@ type Table struct {
 	WebsiteSubjectID *string          `gorm:"type:text"` // ID subject di website jika ada
 	WebsiteLink      *string          `gorm:"type:text"` // Link ke halaman website
 	IsShow           bool             `gorm:"type:boolean;not null;default:true"`
+	IsIntegrated     bool             `gorm:"type:boolean;not null;default:false"`
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 	DeletedAt        gorm.DeletedAt `gorm:"index"`

@@ -48,6 +48,7 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 		"status",
 		"is_aggregated",
 		"is_show",
+		"is_integrated",
 	}
 	for _, key := range keys {
 		// c.Context().QueryArgs().PeekMulti(key) mengembalikan [][]byte
@@ -809,5 +810,48 @@ func (h *TableHandler) GenerateParentTable(c *fiber.Ctx) error {
 	return c.Status(statusCode).JSON(fiber.Map{
 		"data":    response,
 		"message": response.Message,
+	})
+}
+
+func (h *TableHandler) UpdateTableIsIntegrated(c *fiber.Ctx) error {
+	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to update table integrate status",
+		})
+	}
+
+	var payload dto.UpdateTableIsIntegratedRequest
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid request payload",
+		})
+	}
+
+	if err := h.validate.Struct(&payload); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	if err := h.service.UpdateTableIsIntegrated(id, payload.IsIntegrated); err != nil {
+		status := 500
+		if err == gorm.ErrRecordNotFound {
+			status = 404
+		}
+		return c.Status(status).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    nil,
+		"message": "Table is_integrated status updated successfully",
 	})
 }

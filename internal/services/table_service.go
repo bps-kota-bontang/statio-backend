@@ -536,6 +536,20 @@ func (s *TableService) UpdateTableIsLocked(
 	return s.tableRepo.Update(table)
 }
 
+func (s *TableService) UpdateTableIsIntegrated(
+	tableID string,
+	isIntegrated bool,
+) error {
+	table, err := s.tableRepo.FindBaseByID(tableID)
+	if err != nil {
+		return err
+	}
+
+	table.IsIntegrated = isIntegrated
+
+	return s.tableRepo.Update(table)
+}
+
 func (s *TableService) UpdateTableStatus(
 	tableID string,
 	status string,
