@@ -191,6 +191,12 @@ func ToTableListResponse(table *models.Table) *dto.TableListResponse {
 		IsIntegrated:       table.IsIntegrated,
 	}
 
+	if table.WebsiteTableID != nil && table.WebsiteSubjectID != nil && table.WebsiteLink != nil {
+		resp.CanIntegrate = true
+	} else {
+		resp.CanIntegrate = false
+	}
+
 	if table.Indicator != nil {
 		resp.Indicator = ToIndicatorListResponse(table.Indicator)
 	}

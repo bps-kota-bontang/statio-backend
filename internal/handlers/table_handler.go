@@ -50,6 +50,7 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 		"is_show",
 		"is_integrated",
 		"direction",
+		"can_integrate",
 	}
 	for _, key := range keys {
 		// c.Context().QueryArgs().PeekMulti(key) mengembalikan [][]byte

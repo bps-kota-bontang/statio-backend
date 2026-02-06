@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+	"slices"
 	"statio/internal/dto"
 	"statio/internal/models"
 
@@ -386,6 +387,14 @@ func (j *TableRepositoryImpl) Count(search string, filters map[string][]string, 
 			}
 			if len(intValues) > 0 {
 				query = query.Where("tables.direction IN ?", intValues)
+			}
+		case "can_integrate":
+			// lightweight filter to check if tables are integratable (have website table id, subject id and website link)
+			canIntegrate := slices.Contains(values, "true")
+			if canIntegrate {
+				query = query.Where("tables.website_table_id IS NOT NULL AND tables.website_subject_id IS NOT NULL AND tables.website_link IS NOT NULL")
+			} else {
+				query = query.Where("tables.website_table_id IS NULL OR tables.website_subject_id IS NULL OR tables.website_link IS NULL")
 			}
 		}
 	}
@@ -777,6 +786,14 @@ func (j *TableRepositoryImpl) FindLight(search string, sortBy string, sortOrder 
 			}
 			if len(intValues) > 0 {
 				query = query.Where("tables.direction IN ?", intValues)
+			}
+		case "can_integrate":
+			// lightweight filter to check if tables are integratable (have website table id, subject id and website link)
+			canIntegrate := slices.Contains(values, "true")
+			if canIntegrate {
+				query = query.Where("tables.website_table_id IS NOT NULL AND tables.website_subject_id IS NOT NULL AND tables.website_link IS NOT NULL")
+			} else {
+				query = query.Where("tables.website_table_id IS NULL OR tables.website_subject_id IS NULL OR tables.website_link IS NULL")
 			}
 		}
 	}

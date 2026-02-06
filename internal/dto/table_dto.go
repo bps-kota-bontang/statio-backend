@@ -37,6 +37,7 @@ type TableListResponse struct {
 	Dimensions          []DimensionListResponse `json:"dimensions"`
 	InsightFactsSummary *SummaryInsightFacts    `json:"insight_facts_summary"`
 	IsShow              bool                    `json:"is_show"`
+	CanIntegrate        bool                    `json:"can_integrate"`
 }
 
 type CreateTableRequest struct {
