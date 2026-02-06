@@ -14,12 +14,12 @@ type DimensionValueResponse struct {
 }
 
 type DimensionResponse struct {
-	ID        string                   `json:"id"`
-	Name      string                   `json:"name"`
-	Notes     *string                  `json:"notes"`
-	Order     *int                     `json:"order,omitempty"`
-	Aggregate bool                     `json:"aggregate"`
-	Values    []DimensionValueResponse `json:"values"`
+	ID           string                   `json:"id"`
+	Name         string                   `json:"name"`
+	Notes        *string                  `json:"notes"`
+	Order        *int                     `json:"order,omitempty"`
+	IsAggregated bool                     `json:"is_aggregated"`
+	Values       []DimensionValueResponse `json:"values"`
 }
 
 type DimensionListResponse struct {
