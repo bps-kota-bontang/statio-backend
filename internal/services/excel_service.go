@@ -398,6 +398,12 @@ func (s *ExcelService) exportDimension2(f *excelize.File, table *dto.TableRespon
 
 		currentRow := 1
 		pivotData := pivotDataByYear[year]
+		enableColAggregate := dim2.IsAggregated && false
+		extraCols := 0
+
+		if enableColAggregate {
+			extraCols = 1
+		}
 
 		// Header row 1: dim1 name (A1:A2) and dim2 name (B1:last column)
 		cellA1, _ := excelize.CoordinatesToCellName(1, currentRow)
@@ -407,7 +413,7 @@ func (s *ExcelService) exportDimension2(f *excelize.File, table *dto.TableRespon
 		f.SetCellStyle(sheetName, cellA1, cellA2, headerStyle)
 
 		cellB1, _ := excelize.CoordinatesToCellName(2, currentRow)
-		cellLast1, _ := excelize.CoordinatesToCellName(len(dim2Values)+1, currentRow)
+		cellLast1, _ := excelize.CoordinatesToCellName(len(dim2Values)+1+extraCols, currentRow)
 		f.SetCellValue(sheetName, cellB1, dim2.Name)
 		f.MergeCell(sheetName, cellB1, cellLast1)
 		f.SetCellStyle(sheetName, cellB1, cellLast1, headerStyle)
@@ -439,9 +445,150 @@ func (s *ExcelService) exportDimension2(f *excelize.File, table *dto.TableRespon
 			currentRow++
 		}
 
+		// Add aggregate column if dim2 is aggregated
+		if enableColAggregate {
+			aggregateColIdx := len(dim2Values) + 2
+
+			// Determine aggregate header label based on dim1 values' aggregates
+			aggregateLabel := s.getAggregateHeaderLabel(dim1.Values)
+			if aggregateLabel == "" {
+				aggregateLabel = "Total" // Default if mixed or not specified
+			}
+
+			// Add aggregate column header
+			headerCellName, _ := excelize.CoordinatesToCellName(aggregateColIdx, 2)
+			f.SetCellValue(sheetName, headerCellName, aggregateLabel)
+			f.SetCellStyle(sheetName, headerCellName, headerCellName, headerStyle)
+
+			// Calculate and add aggregate values for each dim1 row (horizontal aggregation using dim1 values' aggregates)
+			rowIdx := 3
+			for idx, dim1Val := range dim1Values {
+				cellName, _ := excelize.CoordinatesToCellName(aggregateColIdx, rowIdx)
+
+				// Get the aggregate type for this dim1 value
+				aggregateType := "sum" // default
+				if idx < len(dim1.Values) && dim1.Values[idx].Aggregate != nil {
+					aggregateType = *dim1.Values[idx].Aggregate
+				}
+
+				// Collect all values for this dim1 row
+				var values []float64
+				if pivotData != nil && pivotData[dim1Val] != nil {
+					for _, dim2Val := range dim2Values {
+						if val := pivotData[dim1Val][dim2Val]; val != nil {
+							if floatVal, ok := val.(float64); ok {
+								values = append(values, floatVal)
+							}
+						}
+					}
+				}
+
+				// Calculate aggregate based on the aggregate type
+				if len(values) > 0 {
+					result := s.calculateAggregate(values, aggregateType)
+					f.SetCellValue(sheetName, cellName, result)
+				} else {
+					f.SetCellValue(sheetName, cellName, "")
+				}
+				f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
+				rowIdx++
+			}
+		}
+
+		// Add aggregate row if dim1 is aggregated
+		if dim1.IsAggregated {
+			aggregateRowIdx := currentRow
+
+			// Determine aggregate header label based on dim2 values' aggregates
+			aggregateLabel := s.getAggregateHeaderLabel(dim2.Values)
+			if aggregateLabel == "" {
+				aggregateLabel = "Total" // Default if mixed or not specified
+			}
+
+			// Add aggregate row header
+			cellName, _ := excelize.CoordinatesToCellName(1, aggregateRowIdx)
+			f.SetCellValue(sheetName, cellName, aggregateLabel)
+			f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
+
+			// Calculate and add aggregate values for each dim2 column (vertical aggregation using dim2 values' aggregates)
+			for colIdx, dim2Val := range dim2Values {
+				cellName, _ := excelize.CoordinatesToCellName(colIdx+2, aggregateRowIdx)
+
+				// Get the aggregate type for this dim2 value
+				aggregateType := "sum" // default
+				if colIdx < len(dim2.Values) && dim2.Values[colIdx].Aggregate != nil {
+					aggregateType = *dim2.Values[colIdx].Aggregate
+				}
+
+				// Collect all values for this dim2 column
+				var values []float64
+				if pivotData != nil {
+					for _, dim1Val := range dim1Values {
+						if pivotData[dim1Val] != nil {
+							if val := pivotData[dim1Val][dim2Val]; val != nil {
+								if floatVal, ok := val.(float64); ok {
+									values = append(values, floatVal)
+								}
+							}
+						}
+					}
+				}
+
+				// Calculate aggregate based on the aggregate type
+				if len(values) > 0 {
+					result := s.calculateAggregate(values, aggregateType)
+					f.SetCellValue(sheetName, cellName, result)
+				} else {
+					f.SetCellValue(sheetName, cellName, "")
+				}
+				f.SetCellStyle(sheetName, cellName, cellName, headerStyle)
+			}
+
+			// Add corner cell (grand total) if both dimensions are aggregated
+			if enableColAggregate {
+				aggregateColIdx := len(dim2Values) + 2
+				cornerCellName, _ := excelize.CoordinatesToCellName(aggregateColIdx, aggregateRowIdx)
+
+				// Use table-level aggregate or default to sum
+				aggregateType := "sum"
+				if table.Aggregate != nil && *table.Aggregate != "" {
+					aggregateType = *table.Aggregate
+				}
+
+				var allValues []float64
+				if pivotData != nil {
+					for _, dim1Val := range dim1Values {
+						if pivotData[dim1Val] != nil {
+							for _, dim2Val := range dim2Values {
+								if val := pivotData[dim1Val][dim2Val]; val != nil {
+									if floatVal, ok := val.(float64); ok {
+										allValues = append(allValues, floatVal)
+									}
+								}
+							}
+						}
+					}
+				}
+
+				if len(allValues) > 0 {
+					result := s.calculateAggregate(allValues, aggregateType)
+					f.SetCellValue(sheetName, cornerCellName, result)
+				} else {
+					f.SetCellValue(sheetName, cornerCellName, "")
+				}
+				f.SetCellStyle(sheetName, cornerCellName, cornerCellName, headerStyle)
+			}
+
+			currentRow++
+		}
+
 		// Auto-fit columns
 		f.SetColWidth(sheetName, "A", "A", 25)
-		for i := 0; i < len(dim2Values); i++ {
+		numCols := len(dim2Values)
+		if enableColAggregate {
+			numCols++ // Include aggregate column
+		}
+		for i := 0; i < numCols; i++ {
 			colName, _ := excelize.ColumnNumberToName(i + 2)
 			f.SetColWidth(sheetName, colName, colName, 15)
 		}
@@ -541,4 +688,91 @@ func sanitizeSheetName(name string) string {
 	}
 
 	return name
+}
+
+// calculateAggregate calculates the aggregate value based on the type
+func (s *ExcelService) calculateAggregate(values []float64, aggregateType string) float64 {
+	if len(values) == 0 {
+		return 0
+	}
+
+	switch aggregateType {
+	case "sum":
+		sum := 0.0
+		for _, v := range values {
+			sum += v
+		}
+		return sum
+	case "avg":
+		sum := 0.0
+		for _, v := range values {
+			sum += v
+		}
+		return sum / float64(len(values))
+	case "min":
+		min := values[0]
+		for _, v := range values {
+			if v < min {
+				min = v
+			}
+		}
+		return min
+	case "max":
+		max := values[0]
+		for _, v := range values {
+			if v > max {
+				max = v
+			}
+		}
+		return max
+	default:
+		// Default to sum
+		sum := 0.0
+		for _, v := range values {
+			sum += v
+		}
+		return sum
+	}
+}
+
+// getAggregateHeaderLabel returns the aggregate label based on dimension values' aggregates
+// Returns empty string if mixed, or the appropriate label if all are the same
+func (s *ExcelService) getAggregateHeaderLabel(dimValues []dto.DimensionValueResponse) string {
+	if len(dimValues) == 0 {
+		return ""
+	}
+
+	// Collect all non-nil aggregates
+	var firstAggregate *string
+	allSame := true
+
+	for _, dv := range dimValues {
+		if dv.Aggregate != nil {
+			if firstAggregate == nil {
+				firstAggregate = dv.Aggregate
+			} else if *firstAggregate != *dv.Aggregate {
+				allSame = false
+				break
+			}
+		}
+	}
+
+	// If mixed or no aggregates found, return empty
+	if !allSame || firstAggregate == nil {
+		return ""
+	}
+
+	// Return appropriate label
+	switch *firstAggregate {
+	case "sum":
+		return "Jumlah"
+	case "avg":
+		return "Rata-rata"
+	case "min":
+		return "Minimum"
+	case "max":
+		return "Maksimum"
+	default:
+		return strings.Title(*firstAggregate)
+	}
 }
