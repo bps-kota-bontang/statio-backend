@@ -49,6 +49,7 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 		"is_aggregated",
 		"is_show",
 		"is_integrated",
+		"direction",
 	}
 	for _, key := range keys {
 		// c.Context().QueryArgs().PeekMulti(key) mengembalikan [][]byte

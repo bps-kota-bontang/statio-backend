@@ -21,6 +21,7 @@ type TableResponse struct {
 type TableListResponse struct {
 	ID                  string                  `json:"id"`
 	Name                string                  `json:"name"`
+	Direction           int                     `json:"direction"`
 	Indicator           *IndicatorListResponse  `json:"indicator"`
 	Organization        *OrganizationResponse   `json:"organization"`
 	Labels              []string                `json:"labels"`

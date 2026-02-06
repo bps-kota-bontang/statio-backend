@@ -370,6 +370,22 @@ func (j *TableRepositoryImpl) Count(search string, filters map[string][]string, 
 			} else {
 				query = query.Where("tables.is_integrated IN ?", realValues)
 			}
+		case "direction":
+			// direction is lightweight, keep it
+			intValues := make([]int, 0, len(values))
+			for _, v := range values {
+				switch v {
+				case "0":
+					intValues = append(intValues, 0)
+				case "1":
+					intValues = append(intValues, 1)
+				case "2":
+					intValues = append(intValues, 2)
+				}
+			}
+			if len(intValues) > 0 {
+				query = query.Where("tables.direction IN ?", intValues)
+			}
 		}
 	}
 
@@ -744,6 +760,22 @@ func (j *TableRepositoryImpl) FindLight(search string, sortBy string, sortOrder 
 				query = query.Where("tables.is_integrated IS NULL")
 			} else {
 				query = query.Where("tables.is_integrated IN ?", realValues)
+			}
+		case "direction":
+			// direction is lightweight, keep it
+			intValues := make([]int, 0, len(values))
+			for _, v := range values {
+				switch v {
+				case "0":
+					intValues = append(intValues, 0)
+				case "1":
+					intValues = append(intValues, 1)
+				case "2":
+					intValues = append(intValues, 2)
+				}
+			}
+			if len(intValues) > 0 {
+				query = query.Where("tables.direction IN ?", intValues)
 			}
 		}
 	}

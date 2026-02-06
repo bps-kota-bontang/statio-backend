@@ -176,6 +176,7 @@ func ToTableListResponse(table *models.Table) *dto.TableListResponse {
 	resp := &dto.TableListResponse{
 		ID:                 table.ID,
 		Name:               table.Name,
+		Direction:          table.Direction,
 		Labels:             table.Labels,
 		Notes:              table.Notes,
 		IsLocked:           table.IsLocked,
