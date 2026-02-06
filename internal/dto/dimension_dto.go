@@ -24,6 +24,7 @@ type DimensionResponse struct {
 type DimensionListResponse struct {
 	ID                 string `json:"id"`
 	Name               string `json:"name"`
+	Order              int    `json:"order"`
 	HasParentDimension bool   `json:"has_parent_dimension"`
 }
 

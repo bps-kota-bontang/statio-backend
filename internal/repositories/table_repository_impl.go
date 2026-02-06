@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	"statio/internal/dto"
 	"statio/internal/models"
 
@@ -827,7 +828,11 @@ func (j *TableRepositoryImpl) FindByIDsDetailed(ids []string) ([]*models.Table, 
 	var tables []*models.Table
 	err := j.db.
 		Preload("Indicator").
-		Preload("Dimensions.Dimension.Values").
+		Preload("Dimensions", func(db *gorm.DB) *gorm.DB {
+			return db.Order(`"order" ASC`).Preload("Dimension.Values", func(db2 *gorm.DB) *gorm.DB {
+				return db2.Order(`"order" ASC`)
+			})
+		}).
 		//Preload("Facts"). // adjust if you need specific fact preloads
 		Preload("Organization").
 		Where("id IN ?", ids).
@@ -969,4 +974,45 @@ func (j *TableRepositoryImpl) FindByIDAndMultiYear(id string, year []int) (*mode
 		return nil, err
 	}
 	return &table, nil
+}
+
+// SwapTableDimensions implements TableRepository.
+func (j *TableRepositoryImpl) SwapTableDimensions(tableID string) error {
+	return j.db.Transaction(func(tx *gorm.DB) error {
+		// Load table with dimensions
+		var table models.Table
+		if err := tx.Preload("Dimensions", func(db *gorm.DB) *gorm.DB {
+			return db.Order(`"order" ASC`)
+		}).Where("id = ?", tableID).First(&table).Error; err != nil {
+			return err
+		}
+
+		if len(table.Dimensions) < 2 {
+			return fmt.Errorf("table must have at least 2 dimensions to swap")
+		}
+
+		// Get the first two dimensions
+		dim1 := &table.Dimensions[0]
+		dim2 := &table.Dimensions[1]
+
+		// Swap their order values
+		tempOrder := dim1.Order
+		dim1.Order = dim2.Order
+		dim2.Order = tempOrder
+
+		// Update both dimensions in database
+		if err := tx.Model(&models.TableDimension{}).
+			Where("id = ?", dim1.ID).
+			Update("order", dim1.Order).Error; err != nil {
+			return fmt.Errorf("failed to update first dimension order: %w", err)
+		}
+
+		if err := tx.Model(&models.TableDimension{}).
+			Where("id = ?", dim2.ID).
+			Update("order", dim2.Order).Error; err != nil {
+			return fmt.Errorf("failed to update second dimension order: %w", err)
+		}
+
+		return nil
+	})
 }

@@ -209,6 +209,7 @@ func extractDimension(dims []models.TableDimension) []dto.DimensionListResponse 
 			names = append(names, dto.DimensionListResponse{
 				ID:                 td.Dimension.ID,
 				Name:               td.Dimension.Name,
+				Order:              td.Order,
 				HasParentDimension: hasParentDimension([]models.TableDimension{td}),
 			})
 		}

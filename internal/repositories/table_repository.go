@@ -38,4 +38,5 @@ type TableRepository interface {
 	FindAllBySourceTableID(sourceTableID string) ([]*models.Table, error)
 	CreateTableDimensionWithTx(tx *gorm.DB, td *models.TableDimension) error
 	BeginTx() *gorm.DB
+	SwapTableDimensions(tableID string) error
 }

@@ -670,6 +670,34 @@ func (h *TableHandler) CommitTable(c *fiber.Ctx) error {
 	})
 }
 
+func (h *TableHandler) SwapTableDimension(c *fiber.Ctx) error {
+	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to swap table dimension",
+		})
+	}
+
+	if err := h.service.SwapTableDimension(id); err != nil {
+		status := 500
+		if err == gorm.ErrRecordNotFound {
+			status = 404
+		}
+		return c.Status(status).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    nil,
+		"message": "Table dimension swapped successfully",
+	})
+}
+
 func (h *TableHandler) CommitTables(c *fiber.Ctx) error {
 	roles := c.Locals("roles").([]string)
 	if !utils.IsAdmin(roles) {

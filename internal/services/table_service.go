@@ -805,3 +805,9 @@ func (s *TableService) GenerateParentTable(
 		input,
 	)
 }
+
+func (s *TableService) SwapTableDimension(
+	tableID string,
+) error {
+	return s.tableRepo.SwapTableDimensions(tableID)
+}
