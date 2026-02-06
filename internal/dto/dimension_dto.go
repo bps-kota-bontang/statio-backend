@@ -16,6 +16,7 @@ type DimensionValueResponse struct {
 type DimensionResponse struct {
 	ID        string                   `json:"id"`
 	Name      string                   `json:"name"`
+	Notes     *string                  `json:"notes"`
 	Order     *int                     `json:"order,omitempty"`
 	Aggregate bool                     `json:"aggregate"`
 	Values    []DimensionValueResponse `json:"values"`
@@ -34,11 +35,13 @@ type DimensionNameResponse struct {
 
 type CreateDimensionRequest struct {
 	Name   string   `json:"name" validate:"required"`
+	Notes  *string  `json:"notes"`
 	Values []string `json:"values" validate:"required,dive,required"`
 }
 
 type UpdateDimensionRequest struct {
-	Name   string `json:"name" validate:"required"`
+	Name   string  `json:"name" validate:"required"`
+	Notes  *string `json:"notes"`
 	Values []struct {
 		ID   *string `json:"id,omitempty"`
 		Name string  `json:"name" validate:"required"`

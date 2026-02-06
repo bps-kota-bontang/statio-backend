@@ -10,6 +10,7 @@ func ToDimensionResponse(dimension *models.Dimension, order *int) *dto.Dimension
 	return &dto.DimensionResponse{
 		ID:        dimension.ID,
 		Name:      dimension.Name,
+		Notes:     dimension.Notes,
 		Order:     order,
 		Aggregate: dimension.Aggregate,
 		Values: func() []dto.DimensionValueResponse {
@@ -54,7 +55,8 @@ func ToParentDimensionValueResponse(dv *models.DimensionValue) *dto.ParentDimens
 // ToDimensionModel mengubah dto.CreateDimensionRequest menjadi models.Dimension
 func ToDimensionModel(input *dto.CreateDimensionRequest) *models.Dimension {
 	return &models.Dimension{
-		Name: input.Name,
+		Name:  input.Name,
+		Notes: input.Notes,
 		Values: func() []models.DimensionValue {
 			values := make([]models.DimensionValue, 0, len(input.Values))
 			for i, v := range input.Values {
@@ -71,7 +73,7 @@ func ToDimensionModel(input *dto.CreateDimensionRequest) *models.Dimension {
 // ApplyDimensionUpdateFromRequest memperbarui models.Dimension dari dto.UpdateDimensionRequest
 func ApplyDimensionUpdateFromRequest(dimension *models.Dimension, input *dto.UpdateDimensionRequest) {
 	dimension.Name = input.Name
-
+	dimension.Notes = input.Notes
 	// Buat map ID -> Value lama
 	existingValues := make(map[string]*models.DimensionValue)
 	for i := range dimension.Values {

@@ -104,7 +104,9 @@ func (i *DimensionRepositoryImpl) Update(dimension *models.Dimension) error {
 	// Update nama dimension
 	if err := tx.Model(&models.Dimension{}).
 		Where("id = ?", dimension.ID).
-		Update("name", dimension.Name).Error; err != nil {
+		Update("name", dimension.Name).
+		Update("notes", dimension.Notes).
+		Error; err != nil {
 		tx.Rollback()
 		return err
 	}
