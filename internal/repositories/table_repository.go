@@ -39,4 +39,5 @@ type TableRepository interface {
 	CreateTableDimensionWithTx(tx *gorm.DB, td *models.TableDimension) error
 	BeginTx() *gorm.DB
 	SwapTableDimensions(tableID string) error
+	Delete(tableID string) error
 }

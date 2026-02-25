@@ -449,6 +449,10 @@ func (s *TableService) GetAllLabels() ([]*dto.TableLabelResponse, error) {
 	return responses, nil
 }
 
+func (s *TableService) DeleteTable(tableID string) error {
+	return s.tableRepo.Delete(tableID)
+}
+
 func (s *TableService) UpdateTableLabels(
 	tableID string,
 	input *dto.UpdateTableLabelsRequest,

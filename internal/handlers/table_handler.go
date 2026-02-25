@@ -276,6 +276,31 @@ func (h *TableHandler) UpdateTable(c *fiber.Ctx) error {
 	})
 }
 
+func (h *TableHandler) DeleteTable(c *fiber.Ctx) error {
+	id := c.Params("id")
+	roles := c.Locals("roles").([]string)
+
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "You are not authorized to delete table",
+		})
+	}
+
+	if err := h.service.DeleteTable(id); err != nil {
+		status := 500
+		if err == gorm.ErrRecordNotFound {
+			status = 404
+		}
+		return c.Status(status).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
 func (h *TableHandler) GetTableLabels(c *fiber.Ctx) error {
 	response, err := h.service.GetAllLabels()
 	if err != nil {

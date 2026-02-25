@@ -16,6 +16,7 @@ func RegisterTableRoutes(router fiber.Router, handler *handlers.TableHandler) {
 	table.Post("/commit", handler.CommitTables)
 	table.Get("/:id", handler.GetTable)
 	table.Put("/:id", handler.UpdateTable)
+	table.Delete("/:id", handler.DeleteTable)
 	table.Post("/:id/generate", handler.GenerateParentTable)
 	table.Get("/:id/facts", handler.GetFacts)
 	table.Put("/:id/facts", handler.UpdateFacts)

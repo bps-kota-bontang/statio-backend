@@ -14,6 +14,16 @@ type TableRepositoryImpl struct {
 	db *gorm.DB
 }
 
+// Delete implements [TableRepository].
+func (r *TableRepositoryImpl) Delete(tableID string) error {
+	var table models.Table
+	if err := r.db.Where("id = ?", tableID).First(&table).Error; err != nil {
+		return err
+	}
+
+	return r.db.Delete(&table).Error
+}
+
 // FindTablesBase implements [TableRepository].
 func (r *TableRepositoryImpl) FindTablesBase(filter *dto.FilterTablesRequest) ([]*models.Table, error) {
 	var tables []*models.Table
