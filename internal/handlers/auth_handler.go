@@ -43,7 +43,7 @@ func (h *AuthHandler) setRefreshTokenCookie(c *fiber.Ctx, value string, maxAge i
 	}
 
 	if isProd {
-		cookie.Domain = ".bpsbontang.com"
+		cookie.Domain = ".databontang.com"
 	}
 
 	c.Cookie(cookie)
@@ -64,7 +64,7 @@ func (h *AuthHandler) setStateCookie(c *fiber.Ctx, value string, maxAge int) {
 	}
 
 	if isProd {
-		cookie.Domain = ".bpsbontang.com"
+		cookie.Domain = ".databontang.com"
 	}
 
 	c.Cookie(cookie)

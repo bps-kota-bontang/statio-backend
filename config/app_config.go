@@ -47,7 +47,7 @@ func LoadAppConfig() (*AppConfig, error) {
 	}
 
 	if appURL == "" {
-		appURL = "https://statio.bpsbontang.com" // default app URL
+		appURL = "https://statio.databontang.com" // default app URL
 	}
 
 	return &AppConfig{
