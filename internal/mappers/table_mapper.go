@@ -22,6 +22,7 @@ func ToTableResponse(table *models.Table, year *int) *dto.TableResponse {
 		Dimensions:         []dto.DimensionResponse{},
 		Facts:              []dto.FactResponse{},
 		IsShow:             table.IsShow,
+		YearOffset:         table.YearOffset,
 	}
 
 	// Transform Dimensions

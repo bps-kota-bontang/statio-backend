@@ -30,6 +30,7 @@ type Table struct {
 	WebsiteLink      *string          `gorm:"type:text"` // Link ke halaman website
 	IsShow           bool             `gorm:"type:boolean;not null;default:true"`
 	IsIntegrated     bool             `gorm:"type:boolean;not null;default:false"`
+	YearOffset       int              `gorm:"type:smallint;not null;default:-1"` // Offset tahun untuk table agregasi
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 	DeletedAt        gorm.DeletedAt `gorm:"index"`

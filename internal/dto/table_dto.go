@@ -16,6 +16,7 @@ type TableResponse struct {
 	Dimensions         []DimensionResponse   `json:"dimensions"`
 	Facts              []FactResponse        `json:"facts"`
 	IsShow             bool                  `json:"is_show"`
+	YearOffset         int                   `json:"year_offset"`
 }
 
 type TableListResponse struct {
