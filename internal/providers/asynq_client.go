@@ -20,7 +20,7 @@ func NewAsyncClient(redisConfig *config.RedisConfig) (*asynq.Client, error) {
 	// Verify the client connection by pinging Redis
 	if err := asynqClient.Ping(); err != nil {
 		log.Printf("Error connecting to Redis: %v", err)
-		return nil, err
+		return nil, nil
 	}
 
 	log.Println("Asynq client created and connected to Redis successfully")

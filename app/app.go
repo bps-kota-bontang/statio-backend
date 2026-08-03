@@ -19,6 +19,7 @@ func NewFiberApp(
 	IndicatorHandler *handlers.IndicatorHandler,
 	DimensionHandler *handlers.DimensionHandler,
 	OrganizationHandler *handlers.OrganizationHandler,
+	ProjectHandler *handlers.ProjectHandler,
 	UserHandler *handlers.UserHandler,
 	DashboardHandler *handlers.DashboardHandler,
 	IntegrationHandler *handlers.IntegrationHandler,
@@ -67,6 +68,7 @@ func NewFiberApp(
 	routes.RegisterIndicatorRoutes(protected, IndicatorHandler)
 	routes.RegisterDimensionRoutes(protected, DimensionHandler)
 	routes.RegisterOrganizationRoutes(protected, OrganizationHandler)
+	routes.RegisterProjectRoutes(protected, ProjectHandler)
 	routes.RegisterUserRoutes(protected, UserHandler)
 	routes.RegisterDashboardRoutes(protected, DashboardHandler)
 	routes.RegisterIntegrationRoutes(protected, IntegrationHandler)

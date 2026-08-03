@@ -1,4 +1,4 @@
-.PHONY: wire run run-worker build dev dev-worker generate hot seed-admin
+.PHONY: wire run run-worker build dev dev-worker generate hot seed-admin seed-dummy
 
 # Generate wire_gen.go
 wire:
@@ -54,3 +54,7 @@ hot:
 # Seed default admin user
 seed-admin:
 	go run ./cmd/seed
+
+# Seed default admin and dummy project data
+seed-dummy:
+	go run ./cmd/seed -dummy

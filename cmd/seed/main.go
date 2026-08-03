@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -9,6 +10,9 @@ import (
 )
 
 func main() {
+	dummy := flag.Bool("dummy", false, "seed dummy projects, tables, and indicators")
+	flag.Parse()
+
 	appConfig, err := config.LoadAppConfig()
 	if err != nil {
 		log.Fatalf("failed to load app config: %v", err)
@@ -34,5 +38,13 @@ func main() {
 	}
 
 	log.Printf("seeded admin user: %s (%s)", user.Username, appConfig.AppName)
+	if *dummy {
+		if err := providers.SeedDummyData(db); err != nil {
+			log.Fatalf("failed to seed dummy data: %v", err)
+		}
+		log.Println("seeded dummy projects, tables, indicators, and project links")
+		fmt.Println("Admin and dummy data seed completed successfully")
+		return
+	}
 	fmt.Println("Admin seed completed successfully")
 }

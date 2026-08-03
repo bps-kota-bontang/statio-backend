@@ -16,12 +16,16 @@ type TableRepositoryImpl struct {
 
 // Delete implements [TableRepository].
 func (r *TableRepositoryImpl) Delete(tableID string) error {
-	var table models.Table
-	if err := r.db.Where("id = ?", tableID).First(&table).Error; err != nil {
-		return err
-	}
-
-	return r.db.Delete(&table).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var table models.Table
+		if err := tx.Where("id = ?", tableID).First(&table).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("table_id = ?", tableID).Delete(&models.ProjectTable{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&table).Error
+	})
 }
 
 // FindTablesBase implements [TableRepository].

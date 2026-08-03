@@ -54,6 +54,8 @@ func NewDBConnection(cfg *config.DatabaseConfig) (*gorm.DB, error) {
 		&models.Fact{},
 		&models.FactDimensionValue{},
 		&models.Organization{},
+		&models.Project{},
+		&models.ProjectTable{},
 		&models.User{},
 		&models.Configuration{},
 	); err != nil {
