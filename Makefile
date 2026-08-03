@@ -1,4 +1,4 @@
-.PHONY: wire run run-worker build dev dev-worker generate hot
+.PHONY: wire run run-worker build dev dev-worker generate hot seed-admin
 
 # Generate wire_gen.go
 wire:
@@ -50,3 +50,7 @@ dev-scheduler:
 # Hot reload mode with air
 hot:
 	air
+
+# Seed default admin user
+seed-admin:
+	go run ./cmd/seed

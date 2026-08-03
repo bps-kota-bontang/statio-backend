@@ -1,11 +1,15 @@
 package providers
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"statio/config"
 	"statio/internal/models"
+	"strings"
 
+	"github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -59,4 +63,64 @@ func NewDBConnection(cfg *config.DatabaseConfig) (*gorm.DB, error) {
 
 	log.Println("Database connection established successfully")
 	return db, nil
+}
+
+func buildSeedAdminUser(username, email, password string) *models.User {
+	normalizedUsername := strings.TrimSpace(username)
+	if normalizedUsername == "" {
+		normalizedUsername = "dataadmin"
+	}
+
+	normalizedEmail := strings.TrimSpace(email)
+	if normalizedEmail == "" {
+		normalizedEmail = "dataadmin@statio.local"
+	}
+
+	normalizedPassword := strings.TrimSpace(password)
+	if normalizedPassword == "" {
+		normalizedPassword = "dataadmin123"
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(normalizedPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return nil
+	}
+
+	passwordStr := string(hashedPassword)
+	return &models.User{
+		Username: normalizedUsername,
+		Email:    &normalizedEmail,
+		Password: &passwordStr,
+		Roles:    pq.StringArray{"admin"},
+	}
+}
+
+func SeedDataAdmin(db *gorm.DB, username, email, password string) (*models.User, error) {
+	seedUser := buildSeedAdminUser(username, email, password)
+	if seedUser == nil {
+		return nil, fmt.Errorf("failed to build seed admin user")
+	}
+
+	var existing models.User
+	err := db.Where("username ILIKE ? OR email ILIKE ?", seedUser.Username, *seedUser.Email).First(&existing).Error
+	if err == nil {
+		existing.Username = seedUser.Username
+		existing.Email = seedUser.Email
+		existing.Password = seedUser.Password
+		existing.Roles = seedUser.Roles
+		if saveErr := db.Save(&existing).Error; saveErr != nil {
+			return nil, saveErr
+		}
+		return &existing, nil
+	}
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	if createErr := db.Create(seedUser).Error; createErr != nil {
+		return nil, createErr
+	}
+
+	return seedUser, nil
 }
