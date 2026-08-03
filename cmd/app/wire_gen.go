@@ -56,6 +56,10 @@ func InitializeApp() (*container.AppContainer, error) {
 	if err != nil {
 		return nil, err
 	}
+	integrationConfig, err := config.LoadIntegrationConfig()
+	if err != nil {
+		return nil, err
+	}
 	client, err := providers.NewAsyncClient(redisConfig)
 	if err != nil {
 		return nil, err
@@ -74,7 +78,7 @@ func InitializeApp() (*container.AppContainer, error) {
 	dashboardHandler := handlers.NewDashboardHandler(dashboardService, validate)
 	configurationRepository := repositories.NewConfigurationRepository(db)
 	configurationService := services.NewConfigurationService(configurationRepository)
-	integrationService := services.NewIntegrationService(tableService, configurationService)
+	integrationService := services.NewIntegrationService(tableService, configurationService, integrationConfig)
 	integrationHandler := handlers.NewIntegrationHandler(integrationService, validate)
 	configurationHandler := handlers.NewConfigurationHandler(configurationService, validate)
 	appContainer, err := app.NewFiberApp(appConfig, jwtMiddleware, authHandler, tableHandler, indicatorHandler, dimensionHandler, organizationHandler, userHandler, dashboardHandler, integrationHandler, configurationHandler)

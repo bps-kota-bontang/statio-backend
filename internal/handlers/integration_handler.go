@@ -81,7 +81,7 @@ func (h *IntegrationHandler) ImportDataIntegration(c *fiber.Ctx) error {
 		})
 	}
 
-	err = h.service.ImportDataIntegration(file)
+	data, err := h.service.ImportDataIntegration(file)
 	if err != nil {
 		status := 500
 		if err == gorm.ErrRecordNotFound {
@@ -94,7 +94,7 @@ func (h *IntegrationHandler) ImportDataIntegration(c *fiber.Ctx) error {
 	}
 
 	return c.Status(200).JSON(fiber.Map{
-		"data":    nil,
+		"data":    data,
 		"message": "Data integration imported successfully",
 	})
 }
