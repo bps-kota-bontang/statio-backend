@@ -37,3 +37,6 @@ profile.cov
 
 # Node.js (if using frontend with GoFiber)
 node_modules/
+
+# Temporary files
+/tmp/
