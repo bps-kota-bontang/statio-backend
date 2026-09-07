@@ -19,6 +19,7 @@ type TableRepository interface {
 		sortBy, sortOrder string,
 		filters map[string][]string,
 	) ([]*models.Table, error)
+	FindYearOffsetByTableID(tableID string) (*int, error)
 	CountDimensionsByTableID(tableID string) (*int64, error)
 	FindBaseByID(id string) (*models.Table, error)
 	FindDetailedByID(id string) (*models.Table, error)

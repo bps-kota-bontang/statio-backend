@@ -1003,6 +1003,23 @@ func (j *TableRepositoryImpl) FindByIDAndMultiYear(id string, year []int) (*mode
 	return &table, nil
 }
 
+func (j *TableRepositoryImpl) FindYearOffsetByTableID(tableID string) (*int, error) {
+	var offset int
+	result := j.db.Model(&models.Table{}).
+		Select("year_offset").
+		Where("id = ?", tableID).
+		Scan(&offset)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	return &offset, nil
+}
+
 // SwapTableDimensions implements TableRepository.
 func (j *TableRepositoryImpl) SwapTableDimensions(tableID string) error {
 	return j.db.Transaction(func(tx *gorm.DB) error {

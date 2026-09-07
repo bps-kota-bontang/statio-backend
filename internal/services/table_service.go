@@ -290,6 +290,11 @@ func (s *TableService) GetByID(id string, year *int) (*dto.TableResponse, error)
 		return nil, err
 	}
 
+	offsetYear, err := s.tableRepo.FindYearOffsetByTableID(id)
+	if err != nil {
+		return nil, err
+	}
+
 	if year != nil {
 		// Jika tidak ada dimension (nil atau 0), abaikan year
 		if countDimensions == nil || *countDimensions == 0 {
@@ -298,7 +303,12 @@ func (s *TableService) GetByID(id string, year *int) (*dto.TableResponse, error)
 	} else {
 		// Jika year tidak diberikan, tapi table punya dimension, set useYear ke last year
 		if countDimensions != nil && *countDimensions > 0 {
-			lastYear := time.Now().Year() - 1
+			currentYear := time.Now().Year()
+			lastYear := currentYear - 1
+			if offsetYear != nil {
+				lastYear = currentYear + *offsetYear
+			}
+
 			useYear = &lastYear
 		}
 	}
