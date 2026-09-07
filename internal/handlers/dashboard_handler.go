@@ -28,7 +28,7 @@ func (h *DashboardHandler) GetDashboardStatistics(c *fiber.Ctx) error {
 		orgID = nil
 	}
 
-	stats, err := h.service.GetDashboardStatistics(orgID)
+	stats, err := h.service.GetDashboardStatistics(orgID, utils.IsAdmin(roles))
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"data":    nil,

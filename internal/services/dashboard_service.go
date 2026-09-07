@@ -28,10 +28,16 @@ func NewDashboardService(
 	}
 }
 
-func (s *DashboardService) GetDashboardStatistics(organizationId *string) (*dto.DashboardStatisticsResponse, error) {
+func (s *DashboardService) GetDashboardStatistics(organizationId *string, includeDeprecated bool) (*dto.DashboardStatisticsResponse, error) {
+	var isDeprecated *bool
+	if !includeDeprecated {
+		active := false
+		isDeprecated = &active
+	}
 
 	tables, err := s.tableService.GetTablesBase(&dto.FilterTablesRequest{
 		OrganizationID: organizationId,
+		IsDeprecated:   isDeprecated,
 	})
 	if err != nil {
 		return nil, err

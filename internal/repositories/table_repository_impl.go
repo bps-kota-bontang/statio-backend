@@ -5,6 +5,7 @@ import (
 	"slices"
 	"statio/internal/dto"
 	"statio/internal/models"
+	"strings"
 
 	"github.com/lib/pq"
 	"gorm.io/gorm"
@@ -36,6 +37,10 @@ func (r *TableRepositoryImpl) FindTablesBase(filter *dto.FilterTablesRequest) ([
 
 	if len(filter.TableIDs) > 0 {
 		query = query.Where("id IN ?", filter.TableIDs)
+	}
+
+	if filter.IsDeprecated != nil {
+		query = query.Where("is_deprecated = ?", *filter.IsDeprecated)
 	}
 
 	if err := query.Preload("Organization").Find(&tables).Error; err != nil {
@@ -347,6 +352,27 @@ func (j *TableRepositoryImpl) Count(search string, filters map[string][]string, 
 				query = query.Where("tables.is_aggregated IS NULL")
 			} else {
 				query = query.Where("tables.is_aggregated IN ?", realValues)
+			}
+		case "is_deprecated":
+			query = query.Where("tables.is_deprecated IN ?", values)
+		case "information":
+			conditions := make([]string, 0, len(values))
+			for _, value := range values {
+				switch value {
+				case "locked":
+					conditions = append(conditions, "tables.is_locked = TRUE")
+				case "aggregated":
+					conditions = append(conditions, "tables.is_aggregated = TRUE")
+				case "deprecated":
+					conditions = append(conditions, "tables.is_deprecated = TRUE")
+				case "integrated":
+					conditions = append(conditions, "tables.is_integrated = TRUE")
+				case "hidden":
+					conditions = append(conditions, "tables.is_show = FALSE")
+				}
+			}
+			if len(conditions) > 0 {
+				query = query.Where("(" + strings.Join(conditions, " OR ") + ")")
 			}
 		case "is_show":
 			hasNull := false
@@ -746,6 +772,27 @@ func (j *TableRepositoryImpl) FindLight(search string, sortBy string, sortOrder 
 				query = query.Where("tables.is_aggregated IS NULL")
 			} else {
 				query = query.Where("tables.is_aggregated IN ?", realValues)
+			}
+		case "is_deprecated":
+			query = query.Where("tables.is_deprecated IN ?", values)
+		case "information":
+			conditions := make([]string, 0, len(values))
+			for _, value := range values {
+				switch value {
+				case "locked":
+					conditions = append(conditions, "tables.is_locked = TRUE")
+				case "aggregated":
+					conditions = append(conditions, "tables.is_aggregated = TRUE")
+				case "deprecated":
+					conditions = append(conditions, "tables.is_deprecated = TRUE")
+				case "integrated":
+					conditions = append(conditions, "tables.is_integrated = TRUE")
+				case "hidden":
+					conditions = append(conditions, "tables.is_show = FALSE")
+				}
+			}
+			if len(conditions) > 0 {
+				query = query.Where("(" + strings.Join(conditions, " OR ") + ")")
 			}
 		case "is_show":
 			hasNull := false

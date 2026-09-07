@@ -22,7 +22,8 @@ type Table struct {
 	IsLocked         bool             `gorm:"type:boolean;not null;default:false"`
 	Status           string           `gorm:"type:text;not null;default:'draft'"`
 	IsAggregated     bool             `gorm:"type:boolean;not null;default:false;index"` // Menandai table hasil agregasi
-	SourceTableID    *string          `gorm:"type:uuid;index"`                           // ID table sumber untuk table agregasi
+	IsDeprecated     bool             `gorm:"type:boolean;not null;default:false;index"`
+	SourceTableID    *string          `gorm:"type:uuid;index"` // ID table sumber untuk table agregasi
 	Dimensions       []TableDimension `gorm:"foreignKey:TableID;constraint:OnDelete:CASCADE"`
 	Facts            []Fact           `gorm:"foreignKey:TableID;constraint:OnDelete:CASCADE"`
 	WebsiteTableID   *string          `gorm:"type:text"` // ID table di website jika ada

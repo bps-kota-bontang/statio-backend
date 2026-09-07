@@ -55,6 +55,15 @@ func (s *TableService) GetTablesBase(
 	return tables, err
 }
 
+func (s *TableService) UpdateTableIsDeprecated(id string, isDeprecated bool) error {
+	table, err := s.tableRepo.FindBaseByID(id)
+	if err != nil {
+		return err
+	}
+	table.IsDeprecated = isDeprecated
+	return s.tableRepo.Update(table)
+}
+
 func (s *TableService) GetAllPaginated(
 	search string,
 	page, perPage int,

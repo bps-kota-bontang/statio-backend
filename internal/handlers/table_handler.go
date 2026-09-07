@@ -47,6 +47,8 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 		"revision_facts",
 		"status",
 		"is_aggregated",
+		"is_deprecated",
+		"information",
 		"is_show",
 		"is_integrated",
 		"direction",
@@ -75,6 +77,9 @@ func (h *TableHandler) GetAllTables(c *fiber.Ctx) error {
 				"message": "Missing organization context for operator access",
 			})
 		}
+	}
+	if !utils.IsAdmin(roles) {
+		filters["is_deprecated"] = []string{"false"}
 	}
 
 	tables, total, err := h.service.GetAllPaginated(search, page, perPage, sortBy, sortOrder, filters)
@@ -125,10 +130,50 @@ func (h *TableHandler) GetTable(c *fiber.Ctx) error {
 			})
 		}
 	}
+	if !utils.IsAdmin(roles) && table.IsDeprecated {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Table not found",
+		})
+	}
 
 	return c.JSON(fiber.Map{
 		"data":    table,
 		"message": "Table fetched successfully",
+	})
+}
+
+func (h *TableHandler) UpdateTableIsDeprecated(c *fiber.Ctx) error {
+	roles := c.Locals("roles").([]string)
+	if !utils.IsAdmin(roles) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Only admin users can change table deprecation status",
+		})
+	}
+
+	var payload dto.UpdateTableIsDeprecatedRequest
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"data":    nil,
+			"message": "Invalid request payload",
+		})
+	}
+
+	if err := h.service.UpdateTableIsDeprecated(c.Params("id"), payload.IsDeprecated); err != nil {
+		status := fiber.StatusInternalServerError
+		if err == gorm.ErrRecordNotFound {
+			status = fiber.StatusNotFound
+		}
+		return c.Status(status).JSON(fiber.Map{
+			"data":    nil,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data":    nil,
+		"message": "Table deprecation status updated successfully",
 	})
 }
 

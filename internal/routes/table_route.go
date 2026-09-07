@@ -31,6 +31,7 @@ func RegisterTableRoutes(router fiber.Router, handler *handlers.TableHandler) {
 	table.Put("/:id/status", handler.UpdateTableStatus)
 	table.Put("/:id/mapping", handler.UpdateTableMapping)
 	table.Put("/:id/integrated", handler.UpdateTableIsIntegrated)
+	table.Put("/:id/deprecated", handler.UpdateTableIsDeprecated)
 	table.Post("/:id/swap", handler.SwapTableDimension)
 	table.Patch("/labels", handler.AddLabelsToTables)
 }

@@ -10,6 +10,7 @@ type TableResponse struct {
 	Labels             []string              `json:"labels"`
 	Notes              *string               `json:"notes"`
 	IsLocked           bool                  `json:"is_locked"`
+	IsDeprecated       bool                  `json:"is_deprecated"`
 	Status             string                `json:"status"`
 	Aggregate          *string               `json:"aggregate"`
 	HasParentDimension bool                  `json:"has_parent_dimension"`
@@ -29,6 +30,7 @@ type TableListResponse struct {
 	Notes               *string                 `json:"notes"`
 	IsLocked            bool                    `json:"is_locked"`
 	IsAggregated        bool                    `json:"is_aggregated"`
+	IsDeprecated        bool                    `json:"is_deprecated"`
 	Status              string                  `json:"status"`
 	HasParentDimension  bool                    `json:"has_parent_dimension"`
 	WebsiteTableID      *string                 `json:"website_table_id,omitempty"`
@@ -84,6 +86,10 @@ type UpdateTableIsIntegratedRequest struct {
 	IsIntegrated bool `json:"is_integrated"`
 }
 
+type UpdateTableIsDeprecatedRequest struct {
+	IsDeprecated bool `json:"is_deprecated"`
+}
+
 type UpdateTableStatusRequest struct {
 	Status string `json:"status" validate:"required,oneof=draft submitted finalized unfinalized"`
 }
@@ -105,6 +111,7 @@ type CommitTablesRequest struct {
 type FilterTablesRequest struct {
 	OrganizationID *string  `json:"organization_id,omitempty"`
 	TableIDs       []string `json:"table_ids,omitempty"`
+	IsDeprecated   *bool    `json:"is_deprecated,omitempty"`
 }
 
 type GenerateParentTableRequest struct {
