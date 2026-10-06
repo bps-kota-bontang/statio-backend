@@ -148,15 +148,25 @@ func generateState() string {
 
 func (h *AuthHandler) RedirectSSO(c *fiber.Ctx) error {
 	state := generateState()
+	authType := c.Query("type")
+	if authType == "" {
+		authType = "accounts"
+	}
+	realm := c.Query("realm")
+	if realm == "" {
+		realm = "pegawai"
+	}
 
 	// Set state cookie (7 hari)
 	h.setStateCookie(c, state, 7*24*60*60)
 
 	redirectURL := fmt.Sprintf(
-		"%s/api/v1/auth/sso?state=%s&service_id=%s",
+		"%s/api/v1/auth/sso?state=%s&service_id=%s&type=%s&realm=%s",
 		h.authConfig.AuthGateURL,
 		state,
 		h.authConfig.AuthGateID,
+		authType,
+		realm,
 	)
 
 	return c.Redirect(redirectURL)
@@ -179,14 +189,14 @@ func (h *AuthHandler) LoginSSO(c *fiber.Ctx) error {
 		})
 	}
 
-	if payload.State == "" || payload.Token == "" || payload.State != cookieState {
+	if payload.State == "" || payload.Code == "" || payload.Type == "" || payload.Realm == "" || payload.State != cookieState {
 		return c.Status(400).JSON(fiber.Map{
 			"data":    nil,
-			"message": "Invalid state or token",
+			"message": "Invalid state, code, type or realm",
 		})
 	}
 
-	tokens, err := h.service.LoginBPS(payload.Token)
+	tokens, err := h.service.LoginBPS(payload.Code, payload.Realm, payload.Type)
 	if err != nil {
 		return c.Status(401).JSON(fiber.Map{
 			"data":    nil,

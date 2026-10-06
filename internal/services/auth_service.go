@@ -69,10 +69,10 @@ func (s *AuthService) Refresh(refreshToken string) (string, error) {
 	return s.jwtService.GenerateAccessToken(u.ID, u.Roles, u.OrganizationID)
 }
 
-func (s *AuthService) LoginBPS(token string) (*dto.LoginResponse, error) {
-	userInfo, err := s.bpsService.GetUserInfo(token)
+func (s *AuthService) LoginBPS(code string, realm string, authType string) (*dto.LoginResponse, error) {
+	userInfo, err := s.bpsService.GetUserInfo(code, realm, authType)
 	if err != nil {
-		return nil, fmt.Errorf("invalid token")
+		return nil, fmt.Errorf("invalid BPS login code")
 	}
 
 	user, err := s.userService.GetUserByEmail(userInfo.Email)

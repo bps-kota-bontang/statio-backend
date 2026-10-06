@@ -18,3 +18,7 @@ type UserInfoResponse struct {
 	LastName     string `json:"last-name"`
 	Username     string `json:"username"`
 }
+
+type BPSAuthLoginResponse struct {
+	Data UserInfoResponse `json:"data"`
+}
