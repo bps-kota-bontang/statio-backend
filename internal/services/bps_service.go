@@ -44,8 +44,6 @@ func (s *BPSService) GetUserInfo(code string, realm string, authType string) (*d
 	req.Header.Set("Accept", "application/json, text/plain, */*")
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36")
 	req.Header.Set("Accept-Language", "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7")
-	req.Header.Set("Origin", "https://gerbang.web.bps.go.id")
-	req.Header.Set("Referer", "https://gerbang.web.bps.go.id/")
 
 	client := s.client
 	if client == nil {
