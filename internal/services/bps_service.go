@@ -5,20 +5,26 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"statio/internal/dto"
+	"strings"
+	"time"
 )
 
 type BPSService struct {
+	endpoint string
+	client   *http.Client
 }
 
 func NewBPSService() *BPSService {
-	return &BPSService{}
+	return &BPSService{
+		endpoint: "https://gerbang.web.bps.go.id/api/v1/auth/login",
+		client:   &http.Client{Timeout: 15 * time.Second},
+	}
 }
 
 func (s *BPSService) GetUserInfo(code string, realm string, authType string) (*dto.UserInfoResponse, error) {
-	endpoint := "https://gerbang.web.bps.go.id/api/v1/auth/login"
-
 	payload := map[string]string{
 		"code":  code,
 		"type":  authType,
@@ -30,7 +36,7 @@ func (s *BPSService) GetUserInfo(code string, realm string, authType string) (*d
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", endpoint, bytes.NewReader(body))
+	req, err := http.NewRequest("POST", s.endpoint, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -41,35 +47,75 @@ func (s *BPSService) GetUserInfo(code string, realm string, authType string) (*d
 	req.Header.Set("Origin", "https://gerbang.web.bps.go.id")
 	req.Header.Set("Referer", "https://gerbang.web.bps.go.id/")
 
-	client := &http.Client{}
+	client := s.client
+	if client == nil {
+		client = &http.Client{Timeout: 15 * time.Second}
+	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("send request to Gerbang BPS: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to fetch user info from gerbang BPS: status %d", resp.StatusCode)
-	}
-
-	responseBody, err := io.ReadAll(resp.Body)
+	responseBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read Gerbang BPS response: %w", err)
 	}
-
-	var userInfo dto.UserInfoResponse
-	if err := json.Unmarshal(responseBody, &userInfo); err == nil && userInfo.Email != "" {
-		return &userInfo, nil
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		logGerbangResponse(resp, responseBody)
+		return nil, fmt.Errorf("Gerbang BPS returned HTTP %d: %s", resp.StatusCode, gerbangErrorMessage(responseBody))
 	}
 
 	var wrapped dto.BPSAuthLoginResponse
-	if err := json.Unmarshal(responseBody, &wrapped); err == nil && wrapped.Data.Email != "" {
-		return &dto.UserInfoResponse{
-			Sub:   wrapped.Data.Sub,
-			Name:  wrapped.Data.Name,
-			Email: wrapped.Data.Email,
-		}, nil
+	if err := json.Unmarshal(responseBody, &wrapped); err != nil {
+		logGerbangResponse(resp, responseBody)
+		return nil, fmt.Errorf("decode Gerbang BPS response: %w; body: %s", err, gerbangErrorMessage(responseBody))
 	}
+	if strings.TrimSpace(wrapped.Data.Email) == "" {
+		logGerbangResponse(resp, responseBody)
+		return nil, fmt.Errorf("Gerbang BPS response is missing data.email: %s", gerbangErrorMessage(responseBody))
+	}
+	return &wrapped.Data, nil
+}
 
-	return nil, fmt.Errorf("failed to fetch user info from gerbang BPS")
+func logGerbangResponse(resp *http.Response, responseBody []byte) {
+	const maxLogBody = 4096
+	bodyPreview := responseBody
+	if len(bodyPreview) > maxLogBody {
+		bodyPreview = bodyPreview[:maxLogBody]
+	}
+	log.Printf(
+		"Gerbang BPS login response: status=%d content_type=%q server=%q request_id=%q correlation_id=%q body=%q truncated=%t",
+		resp.StatusCode,
+		resp.Header.Get("Content-Type"),
+		resp.Header.Get("Server"),
+		resp.Header.Get("X-Request-ID"),
+		resp.Header.Get("X-Correlation-ID"),
+		string(bodyPreview),
+		len(responseBody) > maxLogBody,
+	)
+}
+
+func gerbangErrorMessage(responseBody []byte) string {
+	var response struct {
+		Message string `json:"message"`
+		Error   string `json:"error"`
+	}
+	if err := json.Unmarshal(responseBody, &response); err == nil {
+		if message := strings.TrimSpace(response.Message); message != "" {
+			return message
+		}
+		if message := strings.TrimSpace(response.Error); message != "" {
+			return message
+		}
+	}
+	if len(strings.TrimSpace(string(responseBody))) == 0 {
+		return "empty response body"
+	}
+	const maxErrorBody = 500
+	message := strings.Join(strings.Fields(string(responseBody)), " ")
+	if len(message) > maxErrorBody {
+		message = message[:maxErrorBody] + "..."
+	}
+	return message
 }

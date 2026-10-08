@@ -72,7 +72,7 @@ func (s *AuthService) Refresh(refreshToken string) (string, error) {
 func (s *AuthService) LoginBPS(code string, realm string, authType string) (*dto.LoginResponse, error) {
 	userInfo, err := s.bpsService.GetUserInfo(code, realm, authType)
 	if err != nil {
-		return nil, fmt.Errorf("invalid BPS login code")
+		return nil, fmt.Errorf("BPS login failed: %w", err)
 	}
 
 	user, err := s.userService.GetUserByEmail(userInfo.Email)
